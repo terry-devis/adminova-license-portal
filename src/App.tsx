@@ -136,9 +136,9 @@ export function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-base)" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: "2.5rem", height: "2.5rem", borderRadius: "0.75rem", background: "var(--primary)", margin: "0 auto 1rem auto" }}></div>
+          <div style={{ width: "2.5rem", height: "2.5rem", borderRadius: "0.65rem", background: "var(--primary)", margin: "0 auto 1rem auto" }}></div>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Initializing Secure Portal...</p>
         </div>
       </div>
@@ -148,26 +148,26 @@ export function App() {
   // Login View
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}>
-        <div className="glass-card" style={{ maxWidth: "26rem", width: "100%", padding: "2rem" }}>
-          <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
-            <div style={{ width: "3rem", height: "3rem", borderRadius: "1rem", background: "linear-gradient(135deg, #6366f1, #06b6d4)", margin: "0 auto 1rem auto", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "white", fontSize: "1.5rem", boxShadow: "0 6px 20px rgba(99,102,241,0.35)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem", background: "var(--bg-base)" }}>
+        <div className="glass-card" style={{ maxWidth: "24rem", width: "100%", padding: "2rem", background: "#ffffff", boxShadow: "var(--shadow-xl)" }}>
+          <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+            <div style={{ width: "3rem", height: "3rem", borderRadius: "0.75rem", background: "linear-gradient(135deg, #4f46e5, #0284c7)", margin: "0 auto 0.75rem auto", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "white", fontSize: "1.5rem", boxShadow: "0 4px 14px rgba(79, 70, 229, 0.3)" }}>
               A
             </div>
-            <h1 style={{ fontSize: "1.35rem", fontWeight: 800, letterSpacing: "-0.02em" }}>Adminova Command Center</h1>
-            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Universal School Licensing & Telemetry Portal</p>
+            <h1 style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--text-main)", letterSpacing: "-0.02em" }}>Adminova Portal</h1>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>Central School Licensing & Telemetry</p>
           </div>
 
           {loginError && (
-            <div style={{ background: "rgba(244, 63, 94, 0.1)", border: "1px solid rgba(244, 63, 94, 0.25)", color: "#fda4af", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.78rem", marginBottom: "1.25rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <AlertCircle size={16} />
+            <div style={{ background: "var(--rose-light)", border: "1px solid #fecaca", color: "var(--rose)", padding: "0.65rem 0.85rem", borderRadius: "0.5rem", fontSize: "0.78rem", marginBottom: "1.25rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <AlertCircle size={15} />
               <span>{loginError}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
             <div>
-              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.35rem" }}>
+              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.3rem" }}>
                 Admin Email
               </label>
               <input
@@ -181,7 +181,7 @@ export function App() {
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.35rem" }}>
+              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.3rem" }}>
                 Password
               </label>
               <input
@@ -194,14 +194,14 @@ export function App() {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ padding: "0.75rem", marginTop: "0.5rem" }} disabled={loginLoading}>
-              <Lock size={16} />
-              {loginLoading ? "Authenticating..." : "Sign In to Command Center"}
+            <button type="submit" className="btn btn-primary" style={{ padding: "0.7rem", marginTop: "0.35rem" }} disabled={loginLoading}>
+              <Lock size={15} />
+              {loginLoading ? "Authenticating..." : "Sign In to Portal"}
             </button>
           </form>
 
-          <p style={{ textAlign: "center", fontSize: "0.7rem", color: "var(--text-dim)", marginTop: "1.5rem" }}>
-            Protected by Cryptographic Tokenization & 2FA Step-Up
+          <p style={{ textAlign: "center", fontSize: "0.7rem", color: "var(--text-dim)", marginTop: "1.25rem" }}>
+            Protected by Cryptographic Tokenization & 2FA Guard
           </p>
         </div>
       </div>
@@ -209,7 +209,7 @@ export function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-base)" }}>
       {/* Navbar */}
       <Navbar
         user={user}
@@ -222,19 +222,19 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main style={{ maxWidth: "80rem", width: "100%", margin: "0 auto", padding: "1.75rem 1.5rem", flex: 1, display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      <main style={{ maxWidth: "82rem", width: "100%", margin: "0 auto", padding: "1.5rem 1.5rem", flex: 1, display: "flex", flexDirection: "column", gap: "1.25rem" }}>
         
         {/* Warning if RSA key is not in memory */}
         {!hasPrivateKey && (
-          <div style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.25)", borderRadius: "1rem", padding: "0.85rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <KeyRound size={20} color="#f59e0b" />
+          <div style={{ background: "var(--amber-light)", border: "1px solid #fde68a", borderRadius: "0.75rem", padding: "0.75rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              <KeyRound size={18} color="var(--amber)" />
               <div>
-                <strong style={{ fontSize: "0.85rem", color: "#fcd34d" }}>RSA Private Key Not Loaded</strong>
-                <p style={{ fontSize: "0.75rem", color: "rgba(253, 230, 138, 0.8)" }}>You must load private.pem once per browser session to generate new tokens or sign licenses.</p>
+                <strong style={{ fontSize: "0.82rem", color: "var(--amber)" }}>RSA Private Key Not Loaded</strong>
+                <p style={{ fontSize: "0.75rem", color: "#92400e" }}>You must load private.pem once per browser session to generate new tokens or sign licenses.</p>
               </div>
             </div>
-            <button className="btn btn-sm btn-outline" onClick={() => setIsKeyModalOpen(true)} style={{ borderColor: "rgba(245, 158, 11, 0.4)", color: "#fcd34d" }}>
+            <button className="btn btn-sm btn-outline" onClick={() => setIsKeyModalOpen(true)} style={{ borderColor: "#fde68a", color: "var(--amber)" }}>
               Load Key into RAM
             </button>
           </div>
@@ -244,53 +244,53 @@ export function App() {
         {activeNavTab === "schools" && (
           <>
             {/* Top Metric Bar */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(13rem, 1fr))", gap: "1rem" }}>
-              <div className="glass-card" style={{ padding: "1rem" }}>
-                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Total Records</span>
-                <div style={{ fontSize: "1.65rem", fontWeight: 800, marginTop: "0.25rem" }}>{totalSchools}</div>
-                <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Merged from Firestore collections</span>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(13rem, 1fr))", gap: "0.85rem" }}>
+              <div className="glass-card" style={{ padding: "0.9rem 1.1rem" }}>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Total Records</span>
+                <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--text-main)", marginTop: "0.2rem" }}>{totalSchools}</div>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>Merged Firestore records</span>
               </div>
 
-              <div className="glass-card" style={{ padding: "1rem" }}>
-                <span style={{ fontSize: "0.7rem", color: "#34d399", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Active Licenses</span>
-                <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "#34d399", marginTop: "0.25rem" }}>{activeCount}</div>
-                <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Fully authorized instances</span>
+              <div className="glass-card" style={{ padding: "0.9rem 1.1rem" }}>
+                <span style={{ fontSize: "0.68rem", color: "var(--emerald)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Active Licenses</span>
+                <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--emerald)", marginTop: "0.2rem" }}>{activeCount}</div>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>Authorized school sites</span>
               </div>
 
-              <div className="glass-card" style={{ padding: "1rem" }}>
-                <span style={{ fontSize: "0.7rem", color: "var(--cyan)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Online & Seen Today</span>
-                <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "var(--cyan)", marginTop: "0.25rem" }}>{onlineCount}</div>
-                <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Active heartbeat telemetry</span>
+              <div className="glass-card" style={{ padding: "0.9rem 1.1rem" }}>
+                <span style={{ fontSize: "0.68rem", color: "var(--cyan)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Online Heartbeat</span>
+                <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--cyan)", marginTop: "0.2rem" }}>{onlineCount}</div>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>Active in last hour</span>
               </div>
 
-              <div className="glass-card" style={{ padding: "1rem" }}>
-                <span style={{ fontSize: "0.7rem", color: "#fda4af", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Locked / Suspended</span>
-                <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "#fda4af", marginTop: "0.25rem" }}>{lockedCount}</div>
-                <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Read-only or revoked</span>
+              <div className="glass-card" style={{ padding: "0.9rem 1.1rem" }}>
+                <span style={{ fontSize: "0.68rem", color: "var(--rose)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Locked / Suspended</span>
+                <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--rose)", marginTop: "0.2rem" }}>{lockedCount}</div>
+                <span style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>Read-only or revoked</span>
               </div>
             </div>
 
             {/* Filter and Search Bar */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.85rem", flexWrap: "wrap" }}>
               {/* Search Input */}
               <div style={{ position: "relative", flex: 1, minWidth: "16rem" }}>
-                <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }} />
+                <Search size={15} style={{ position: "absolute", left: "0.85rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }} />
                 <input
                   type="text"
                   className="input"
-                  style={{ paddingLeft: "2.5rem" }}
-                  placeholder="Search by school name, ID, license key, IP address, or token..."
+                  style={{ paddingLeft: "2.3rem" }}
+                  placeholder="Search by school name, ID, license key, IP, or token..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
               {/* Status Filter Buttons */}
-              <div style={{ display: "flex", gap: "0.4rem", background: "rgba(15, 23, 42, 0.7)", padding: "0.3rem", borderRadius: "0.75rem", border: "1px solid var(--border-subtle)", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "0.3rem", background: "var(--bg-subtle)", padding: "0.25rem", borderRadius: "0.65rem", border: "1px solid var(--border-subtle)", flexWrap: "wrap" }}>
                 {[
                   { id: "all", label: "All" },
                   { id: "active", label: "Active" },
-                  { id: "legacy", label: "? Existing Firebase" },
+                  { id: "legacy", label: "⚡ Existing Firebase" },
                   { id: "locked_readonly", label: "Read-Only" },
                   { id: "revoked", label: "Revoked" },
                   { id: "burned", label: "Installed" },
@@ -301,9 +301,11 @@ export function App() {
                     onClick={() => setStatusFilter(f.id)}
                     className="btn btn-sm"
                     style={{
-                      background: statusFilter === f.id ? "var(--primary)" : "transparent",
-                      color: statusFilter === f.id ? "white" : "var(--text-muted)",
-                      padding: "0.35rem 0.65rem"
+                      background: statusFilter === f.id ? "#ffffff" : "transparent",
+                      color: statusFilter === f.id ? "var(--primary)" : "var(--text-muted)",
+                      boxShadow: statusFilter === f.id ? "var(--shadow-sm)" : "none",
+                      border: statusFilter === f.id ? "1px solid var(--border-subtle)" : "1px solid transparent",
+                      padding: "0.3rem 0.6rem"
                     }}
                   >
                     {f.label}
@@ -314,13 +316,13 @@ export function App() {
 
             {/* School Client Cards Grid */}
             {filteredSchools.length === 0 ? (
-              <div className="glass-card" style={{ padding: "4rem 2rem", textAlign: "center" }}>
-                <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>
+              <div className="glass-card" style={{ padding: "3rem 1.5rem", textAlign: "center" }}>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
                   {searchQuery ? "No schools matched your search criteria." : "No school licenses or tokens found. Register your first school to begin."}
                 </p>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(24rem, 1fr))", gap: "1.25rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(23rem, 1fr))", gap: "1rem" }}>
                 {filteredSchools.map((school) => (
                   <SchoolCard
                     key={school.id}

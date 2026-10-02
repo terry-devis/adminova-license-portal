@@ -1,5 +1,5 @@
 ﻿import React, { useState } from "react";
-import { School, Sparkles, X, CheckSquare, Square } from "lucide-react";
+import { School, X, CheckSquare, Square } from "lucide-react";
 import type { PlanType } from "../../types";
 import { createUnifiedSchool } from "../../services/schoolService";
 import { getSessionPrivateKey } from "../../services/cryptoService";
@@ -103,31 +103,31 @@ export const CreateSchoolModal: React.FC<Props> = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: "36rem", maxHeight: "90vh", overflowY: "auto" }}>
+      <div className="modal-content" style={{ maxWidth: "34rem", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-            <div style={{ padding: "0.5rem", borderRadius: "0.75rem", background: "rgba(99, 102, 241, 0.15)", color: "var(--primary)" }}>
-              <School size={22} />
+            <div style={{ padding: "0.45rem", borderRadius: "0.65rem", background: "var(--primary-light)", color: "var(--primary)" }}>
+              <School size={20} />
             </div>
             <div>
-              <h3 style={{ fontSize: "1.15rem", fontWeight: 700 }}>Register New School Institution</h3>
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Simultaneously issues 1-Time Token & Signed RSA License</p>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-main)" }}>Register School Institution</h3>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Generates 1-Time Install Token & Signed RSA License</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer" }}>
-            <X size={20} />
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer" }}>
+            <X size={18} />
           </button>
         </div>
 
         {error && (
-          <div style={{ background: "rgba(244, 63, 94, 0.1)", border: "1px solid rgba(244, 63, 94, 0.25)", color: "#fda4af", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.8rem", marginBottom: "1rem" }}>
+          <div style={{ background: "var(--rose-light)", border: "1px solid #fecaca", color: "var(--rose)", padding: "0.65rem 0.85rem", borderRadius: "0.5rem", fontSize: "0.78rem", marginBottom: "1rem" }}>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
           <div>
-            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.35rem" }}>
+            <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.3rem" }}>
               School Name
             </label>
             <input
@@ -142,7 +142,7 @@ export const CreateSchoolModal: React.FC<Props> = ({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
             <div>
-              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.35rem" }}>
+              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.3rem" }}>
                 School Code / Slug
               </label>
               <input
@@ -156,7 +156,7 @@ export const CreateSchoolModal: React.FC<Props> = ({
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.35rem" }}>
+              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.3rem" }}>
                 Subscription Plan
               </label>
               <select className="input" value={plan} onChange={(e) => setPlan(e.target.value as PlanType)}>
@@ -170,7 +170,7 @@ export const CreateSchoolModal: React.FC<Props> = ({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
             <div>
-              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.35rem" }}>
+              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.3rem" }}>
                 License Duration
               </label>
               <select className="input" value={daysValid} onChange={(e) => setDaysValid(parseInt(e.target.value))}>
@@ -183,7 +183,7 @@ export const CreateSchoolModal: React.FC<Props> = ({
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.35rem" }}>
+              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.3rem" }}>
                 Contact Email (Optional)
               </label>
               <input
@@ -197,10 +197,10 @@ export const CreateSchoolModal: React.FC<Props> = ({
           </div>
 
           <div>
-            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem" }}>
+            <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.4rem" }}>
               Licensed Features & Modules
             </label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.45rem" }}>
               {ALL_MODULES.map((mod) => {
                 const active = selectedModules.includes(mod.id);
                 return (
@@ -210,23 +210,25 @@ export const CreateSchoolModal: React.FC<Props> = ({
                     style={{
                       display: "flex",
                       alignItems: "flex-start",
-                      gap: "0.5rem",
-                      padding: "0.6rem 0.75rem",
-                      borderRadius: "0.75rem",
-                      background: active ? "rgba(99, 102, 241, 0.1)" : "rgba(30, 41, 59, 0.4)",
-                      border: `1px solid ${active ? "rgba(99, 102, 241, 0.3)" : "rgba(255, 255, 255, 0.05)"}`,
+                      gap: "0.45rem",
+                      padding: "0.55rem 0.65rem",
+                      borderRadius: "0.5rem",
+                      background: active ? "var(--primary-light)" : "var(--bg-subtle)",
+                      border: `1px solid ${active ? "#c7d2fe" : "var(--border-subtle)"}`,
                       cursor: "pointer",
                       transition: "all 0.15s ease"
                     }}
                   >
-                    <div style={{ color: active ? "var(--primary)" : "var(--text-dim)", marginTop: "2px" }}>
-                      {active ? <CheckSquare size={16} /> : <Square size={16} />}
+                    <div style={{ color: active ? "var(--primary)" : "var(--text-dim)", marginTop: "0.1rem" }}>
+                      {active ? <CheckSquare size={15} /> : <Square size={15} />}
                     </div>
                     <div>
                       <div style={{ fontSize: "0.8rem", fontWeight: 600, color: active ? "var(--text-main)" : "var(--text-muted)" }}>
                         {mod.label}
                       </div>
-                      <div style={{ fontSize: "0.65rem", color: "var(--text-dim)" }}>{mod.desc}</div>
+                      <div style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>
+                        {mod.desc}
+                      </div>
                     </div>
                   </div>
                 );
@@ -234,13 +236,12 @@ export const CreateSchoolModal: React.FC<Props> = ({
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", marginTop: "0.5rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
-            <button type="button" className="btn btn-outline" onClick={onClose}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-subtle)" }}>
+            <button type="button" onClick={onClose} className="btn btn-outline">
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              <Sparkles size={16} />
-              {loading ? "Generating Cryptographic Token..." : "Issue School Token & License"}
+              {loading ? "Generating..." : "Issue Token & License"}
             </button>
           </div>
         </form>

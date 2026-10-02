@@ -23,60 +23,53 @@ export const KeyManagerModal: React.FC<Props> = ({ isOpen, onClose, onKeySaved }
     }
 
     setSessionPrivateKey(trimmed);
-    setKeyInput("");
     onKeySaved();
-    onClose();
   };
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content" style={{ maxWidth: "32rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <div style={{ padding: "0.5rem", borderRadius: "0.75rem", background: "rgba(99, 102, 241, 0.15)", color: "var(--primary)" }}>
+            <div style={{ padding: "0.45rem", borderRadius: "0.65rem", background: "var(--amber-light)", color: "var(--amber)" }}>
               <KeyRound size={20} />
             </div>
             <div>
-              <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>Load RSA Cryptographic Key</h3>
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>In-memory cryptographic signing engine</p>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-main)" }}>Load RSA Private Key</h3>
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Stored exclusively in browser memory (RAM)</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "var(--text-dim)", cursor: "pointer" }}>
-            <X size={20} />
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-dim)", cursor: "pointer" }}>
+            <X size={18} />
           </button>
         </div>
 
-        <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "0.75rem", padding: "0.75rem", marginBottom: "1rem", fontSize: "0.75rem", color: "#6ee7b7", display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
-          <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
-          <span>
-            <strong>Zero-Knowledge Security:</strong> Your private key is stored strictly in this browser session's RAM. It is never transmitted across the network or saved in Firestore.
-          </span>
-        </div>
+        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.75rem", lineHeight: 1.5 }}>
+          Paste your <code className="mono" style={{ background: "var(--bg-subtle)", padding: "0.15rem 0.35rem", borderRadius: "0.3rem" }}>private.pem</code> contents below. This key is used to cryptographically sign tamper-proof licenses for schools.
+        </p>
 
         {error && (
-          <div style={{ background: "rgba(244, 63, 94, 0.1)", border: "1px solid rgba(244, 63, 94, 0.25)", color: "#fda4af", padding: "0.75rem", borderRadius: "0.75rem", fontSize: "0.8rem", marginBottom: "1rem" }}>
+          <div style={{ background: "var(--rose-light)", border: "1px solid #fecaca", color: "var(--rose)", padding: "0.6rem 0.8rem", borderRadius: "0.5rem", fontSize: "0.78rem", marginBottom: "0.75rem" }}>
             {error}
           </div>
         )}
 
-        <div style={{ marginBottom: "1.25rem" }}>
-          <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem" }}>
-            Paste Contents of private.pem
-          </label>
-          <textarea
-            className="input mono"
-            rows={8}
-            value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
-            placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;MIIEowIBAAKCAQEA0...&#10;-----END RSA PRIVATE KEY-----"
-            style={{ resize: "vertical", fontSize: "0.75rem", lineHeight: 1.4 }}
-          />
-        </div>
+        <textarea
+          rows={7}
+          className="input mono"
+          style={{ fontSize: "0.72rem", resize: "vertical", color: "var(--text-main)", background: "var(--bg-subtle)" }}
+          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;MIIEowIBAAKCAQEA0t...&#10;-----END RSA PRIVATE KEY-----"
+          value={keyInput}
+          onChange={(e) => setKeyInput(e.target.value)}
+        />
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-          <button className="btn btn-outline" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave}>
-            Load Key into RAM
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-subtle)" }}>
+          <button onClick={onClose} className="btn btn-outline">
+            Cancel
+          </button>
+          <button onClick={handleSave} className="btn btn-primary">
+            <CheckCircle2 size={14} />
+            <span>Store Key in RAM</span>
           </button>
         </div>
       </div>

@@ -15,6 +15,8 @@ export interface SchoolClient {
   enabled_modules: string[]; // e.g. ['fees', 'exams', 'attendance', 'whatsapp', 'reports']
   broadcast_announcement?: string;
   config_version: number; // Increments to trigger instant real-time sync on client
+  is_legacy?: boolean; // True if loaded from legacy 'licenses' collection
+  is_legacy_token?: boolean; // True if loaded from legacy 'install_tokens' collection
   token: {
     token_string: string; // e.g. 'SIMS-TOK-APS-ISB-8F2K'
     status: 'unused' | 'burned';
@@ -36,6 +38,15 @@ export interface SchoolClient {
   };
   created_at: string;
   updated_at: string;
+}
+
+export interface PortalAdminUser {
+  uid: string;
+  email: string;
+  role: 'super_admin' | 'operator' | 'viewer';
+  created_at?: string;
+  last_login?: string;
+  is_current_user?: boolean;
 }
 
 export interface AuditLog {

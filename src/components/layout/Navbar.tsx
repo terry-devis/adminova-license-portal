@@ -1,10 +1,12 @@
 ﻿import React from "react";
-import { Plus, LogOut, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Plus, LogOut, CheckCircle2, AlertTriangle, ShieldCheck, Building2, Users } from "lucide-react";
 import type { User } from "firebase/auth";
 
 interface Props {
   user: User | null;
   hasPrivateKey: boolean;
+  activeNavTab: "schools" | "users";
+  onSelectNavTab: (tab: "schools" | "users") => void;
   onOpenKeyModal: () => void;
   onOpenCreateSchool: () => void;
   onSignOut: () => void;
@@ -13,6 +15,8 @@ interface Props {
 export const Navbar: React.FC<Props> = ({
   user,
   hasPrivateKey,
+  activeNavTab,
+  onSelectNavTab,
   onOpenKeyModal,
   onOpenCreateSchool,
   onSignOut
@@ -37,7 +41,53 @@ export const Navbar: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Center / Security Badges */}
+        {/* Center: Navigation Tabs */}
+        <div style={{ display: "flex", alignItems: "center", background: "rgba(15, 23, 42, 0.8)", padding: "0.25rem", borderRadius: "0.75rem", border: "1px solid var(--border-subtle)" }}>
+          <button
+            onClick={() => onSelectNavTab("schools")}
+            className="btn btn-sm"
+            style={{
+              background: activeNavTab === "schools" ? "var(--primary)" : "transparent",
+              color: activeNavTab === "schools" ? "white" : "var(--text-muted)",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              padding: "0.35rem 0.75rem"
+            }}
+          >
+            <Building2 size={14} />
+            <span>Schools & Licenses</span>
+          </button>
+
+          <button
+            onClick={() => onSelectNavTab("users")}
+            className="btn btn-sm"
+            style={{
+              background: activeNavTab === "users" ? "var(--primary)" : "transparent",
+              color: activeNavTab === "users" ? "white" : "var(--text-muted)",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              padding: "0.35rem 0.75rem",
+              position: "relative"
+            }}
+          >
+            <Users size={14} />
+            <span>Users & Access</span>
+            <span
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                background: "#ef4444",
+                boxShadow: "0 0 8px #ef4444"
+              }}
+              title="198 Anonymous ghost accounts detected"
+            />
+          </button>
+        </div>
+
+        {/* Security & Actions */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           {/* RSA Key Badge */}
           <button
@@ -50,7 +100,7 @@ export const Navbar: React.FC<Props> = ({
             }}
           >
             {hasPrivateKey ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-            <span>{hasPrivateKey ? "RSA Key Loaded (RAM)" : "Load private.pem"}</span>
+            <span>{hasPrivateKey ? "RSA Key (RAM)" : "Load private.pem"}</span>
           </button>
 
           {/* 2FA Guard Badge */}
@@ -69,12 +119,9 @@ export const Navbar: React.FC<Props> = ({
             }}
           >
             <ShieldCheck size={14} />
-            <span>2FA Guard Active</span>
+            <span>2FA Active</span>
           </div>
-        </div>
 
-        {/* Right Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <button onClick={onOpenCreateSchool} className="btn btn-sm btn-primary">
             <Plus size={15} />
             <span>Register School</span>

@@ -8,10 +8,12 @@ import {
   Trash2,
   MapPin,
   Globe,
-  Cpu
+  Cpu,
+  Sparkles,
+  Ticket
 } from "lucide-react";
 import type { SchoolClient } from "../../types";
-import { resetMachineLock, renewLicense, deleteSchool } from "../../services/schoolService";
+import { resetMachineLock, renewLicense, deleteSchool, migrateLegacySchool } from "../../services/schoolService";
 
 interface Props {
   school: SchoolClient;
@@ -30,6 +32,7 @@ export const SchoolCard: React.FC<Props> = ({
 }) => {
   const [copiedToken, setCopiedToken] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [migrating, setMigrating] = useState(false);
 
   const isExpired = new Date(school.expires_at).getTime() < Date.now();
   const daysLeft = Math.ceil((new Date(school.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
@@ -42,6 +45,18 @@ export const SchoolCard: React.FC<Props> = ({
     } else {
       setCopiedKey(true);
       setTimeout(() => setCopiedKey(false), 2000);
+    }
+  };
+
+  const handleMigrate = async () => {
+    setMigrating(true);
+    try {
+      await migrateLegacySchool(school);
+      onActionComplete();
+    } catch (e: any) {
+      alert("Failed to migrate record: " + e.message);
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -85,16 +100,24 @@ export const SchoolCard: React.FC<Props> = ({
   };
 
   const getStatusBadge = () => {
+    if (school.is_legacy_token) {
+      return (
+        <span className="badge" style={{ background: "rgba(6, 182, 212, 0.15)", color: "#22d3ee", border: "1px solid rgba(6, 182, 212, 0.3)" }}>
+          <Ticket size={11} style={{ marginRight: "0.25rem", display: "inline" }} />
+          Standalone Token
+        </span>
+      );
+    }
     if (school.status === "revoked") {
-      return <span className="badge badge-revoked">⛔ Killswitch Active</span>;
+      return <span className="badge badge-revoked">?? Killswitch Active</span>;
     }
     if (school.status === "locked_readonly") {
-      return <span className="badge badge-locked">🔒 Read-Only Mode</span>;
+      return <span className="badge badge-locked">?? Read-Only Mode</span>;
     }
     if (isExpired) {
-      return <span className="badge badge-locked">⚠️ Expired ({Math.abs(daysLeft)}d ago)</span>;
+      return <span className="badge badge-locked">?? Expired ({Math.abs(daysLeft)}d ago)</span>;
     }
-    return <span className="badge badge-active">● Active ({daysLeft}d left)</span>;
+    return <span className="badge badge-active">?? Active ({daysLeft}d left)</span>;
   };
 
   return (
@@ -102,13 +125,18 @@ export const SchoolCard: React.FC<Props> = ({
       {/* Top Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
             <span style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-main)" }}>
               {school.school_name}
             </span>
             <span className="mono" style={{ fontSize: "0.7rem", color: "var(--text-dim)", background: "rgba(255,255,255,0.06)", padding: "0.15rem 0.4rem", borderRadius: "0.4rem" }}>
               {school.id}
             </span>
+            {school.is_legacy && (
+              <span className="badge" style={{ background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.3)", fontSize: "0.62rem" }}>
+                ? Existing License Record
+              </span>
+            )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
             <span className="badge badge-unused">{school.plan}</span>
@@ -117,6 +145,19 @@ export const SchoolCard: React.FC<Props> = ({
         </div>
 
         <div style={{ display: "flex", gap: "0.4rem" }}>
+          {(school.is_legacy || school.is_legacy_token) && (
+            <button
+              onClick={handleMigrate}
+              disabled={migrating}
+              className="btn btn-sm"
+              style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "white", padding: "0.35rem 0.65rem" }}
+              title="Upgrade this existing record into the unified Adminova v3 collection"
+            >
+              <Sparkles size={13} />
+              <span>{migrating ? "Upgrading..." : "Unify to v3"}</span>
+            </button>
+          )}
+
           <button
             onClick={() => onOpenRemote(school)}
             className="btn btn-sm btn-primary"
@@ -131,7 +172,7 @@ export const SchoolCard: React.FC<Props> = ({
       {/* Broadcast alert if present */}
       {school.broadcast_announcement && (
         <div style={{ background: "rgba(6, 182, 212, 0.1)", border: "1px solid rgba(6, 182, 212, 0.25)", borderRadius: "0.6rem", padding: "0.5rem 0.75rem", fontSize: "0.75rem", color: "#67e8f9" }}>
-          <strong>📢 Active Announcement:</strong> {school.broadcast_announcement}
+          <strong>?? Active Announcement:</strong> {school.broadcast_announcement}
         </div>
       )}
 
@@ -155,13 +196,15 @@ export const SchoolCard: React.FC<Props> = ({
             <span className="mono" style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--cyan)" }}>
               {school.token?.token_string}
             </span>
-            <button
-              onClick={() => copyToClipboard(school.token?.token_string || "", true)}
-              style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
-              title="Copy Token"
-            >
-              {copiedToken ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
-            </button>
+            {school.token?.token_string && school.token.token_string !== "LEGACY-DIRECT-KEY" && (
+              <button
+                onClick={() => copyToClipboard(school.token?.token_string || "", true)}
+                style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
+                title="Copy Token"
+              >
+                {copiedToken ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+              </button>
+            )}
           </div>
         </div>
 
@@ -178,15 +221,17 @@ export const SchoolCard: React.FC<Props> = ({
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span className="mono" style={{ fontSize: "0.78rem", fontWeight: 700, color: "#a5b4fc" }}>
-              {school.license?.key ? `${school.license.key.substring(0, 18)}...` : "—"}
+              {school.license?.key ? `${school.license.key.substring(0, 18)}...` : "-"}
             </span>
-            <button
-              onClick={() => copyToClipboard(school.license?.key || "", false)}
-              style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
-              title="Copy License Key"
-            >
-              {copiedKey ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
-            </button>
+            {school.license?.key && school.license.key !== "PENDING-FIRST-INSTALL" && (
+              <button
+                onClick={() => copyToClipboard(school.license?.key || "", false)}
+                style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
+                title="Copy License Key"
+              >
+                {copiedKey ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -211,7 +256,7 @@ export const SchoolCard: React.FC<Props> = ({
               IP: {school.telemetry?.public_ip ? (
                 <span className="mono" style={{ color: "var(--text-main)" }}>{school.telemetry.public_ip}</span>
               ) : (
-                <span style={{ color: "var(--text-dim)" }}>—</span>
+                <span style={{ color: "var(--text-dim)" }}>-</span>
               )}
             </span>
           </div>

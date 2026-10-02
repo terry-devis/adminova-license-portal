@@ -6,10 +6,8 @@ import {
 } from "firebase/auth";
 import type { User } from "firebase/auth";
 import {
-  School,
   Search,
   KeyRound,
-  Sparkles,
   Lock,
   AlertCircle
 } from "lucide-react";
@@ -23,10 +21,14 @@ import { CreateSchoolModal } from "./components/schools/CreateSchoolModal";
 import { RemoteControlModal } from "./components/schools/RemoteControlModal";
 import { KeyManagerModal } from "./components/security/KeyManagerModal";
 import { TwoFactorModal } from "./components/security/TwoFactorModal";
+import { UserManagement } from "./components/users/UserManagement";
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  // Nav state
+  const [activeNavTab, setActiveNavTab] = useState<"schools" | "users">("schools");
 
   // Login form state
   const [email, setEmail] = useState("");
@@ -106,6 +108,7 @@ export function App() {
       s.school_name.toLowerCase().includes(q) ||
       s.id.toLowerCase().includes(q) ||
       (s.token?.token_string || "").toLowerCase().includes(q) ||
+      (s.license?.key || "").toLowerCase().includes(q) ||
       (s.telemetry?.public_ip || "").toLowerCase().includes(q) ||
       (s.telemetry?.location || "").toLowerCase().includes(q);
 
@@ -117,6 +120,7 @@ export function App() {
     if (statusFilter === "revoked") return s.status === "revoked";
     if (statusFilter === "burned") return s.token?.status === "burned";
     if (statusFilter === "unused") return s.token?.status === "unused";
+    if (statusFilter === "legacy") return s.is_legacy || s.is_legacy_token;
     return true;
   });
 
@@ -210,6 +214,8 @@ export function App() {
       <Navbar
         user={user}
         hasPrivateKey={hasPrivateKey}
+        activeNavTab={activeNavTab}
+        onSelectNavTab={setActiveNavTab}
         onOpenKeyModal={() => setIsKeyModalOpen(true)}
         onOpenCreateSchool={() => setIsCreateModalOpen(true)}
         onSignOut={handleSignOut}
@@ -234,110 +240,120 @@ export function App() {
           </div>
         )}
 
-        {/* Top Metric Bar */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(13rem, 1fr))", gap: "1rem" }}>
-          <div className="glass-card" style={{ padding: "1rem" }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Total Schools</span>
-            <div style={{ fontSize: "1.65rem", fontWeight: 800, marginTop: "0.25rem" }}>{totalSchools}</div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Registered institutions</span>
-          </div>
+        {/* TAB 1: SCHOOLS & LICENSES */}
+        {activeNavTab === "schools" && (
+          <>
+            {/* Top Metric Bar */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(13rem, 1fr))", gap: "1rem" }}>
+              <div className="glass-card" style={{ padding: "1rem" }}>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Total Records</span>
+                <div style={{ fontSize: "1.65rem", fontWeight: 800, marginTop: "0.25rem" }}>{totalSchools}</div>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Merged from Firestore collections</span>
+              </div>
 
-          <div className="glass-card" style={{ padding: "1rem" }}>
-            <span style={{ fontSize: "0.7rem", color: "#34d399", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Active Licenses</span>
-            <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "#34d399", marginTop: "0.25rem" }}>{activeCount}</div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Fully authorized instances</span>
-          </div>
+              <div className="glass-card" style={{ padding: "1rem" }}>
+                <span style={{ fontSize: "0.7rem", color: "#34d399", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Active Licenses</span>
+                <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "#34d399", marginTop: "0.25rem" }}>{activeCount}</div>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Fully authorized instances</span>
+              </div>
 
-          <div className="glass-card" style={{ padding: "1rem" }}>
-            <span style={{ fontSize: "0.7rem", color: "var(--cyan)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Online & Seen Today</span>
-            <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "var(--cyan)", marginTop: "0.25rem" }}>{onlineCount}</div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Active heartbeat pings</span>
-          </div>
+              <div className="glass-card" style={{ padding: "1rem" }}>
+                <span style={{ fontSize: "0.7rem", color: "var(--cyan)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Online & Seen Today</span>
+                <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "var(--cyan)", marginTop: "0.25rem" }}>{onlineCount}</div>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Active heartbeat telemetry</span>
+              </div>
 
-          <div className="glass-card" style={{ padding: "1rem" }}>
-            <span style={{ fontSize: "0.7rem", color: "#fda4af", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Locked / Suspended</span>
-            <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "#fda4af", marginTop: "0.25rem" }}>{lockedCount}</div>
-            <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Read-only or revoked</span>
-          </div>
-        </div>
+              <div className="glass-card" style={{ padding: "1rem" }}>
+                <span style={{ fontSize: "0.7rem", color: "#fda4af", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>Locked / Suspended</span>
+                <div style={{ fontSize: "1.65rem", fontWeight: 800, color: "#fda4af", marginTop: "0.25rem" }}>{lockedCount}</div>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-dim)" }}>Read-only or revoked</span>
+              </div>
+            </div>
 
-        {/* Filter and Search Bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-          {/* Search Input */}
-          <div style={{ position: "relative", flex: 1, minWidth: "16rem" }}>
-            <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }} />
-            <input
-              type="text"
-              className="input"
-              style={{ paddingLeft: "2.5rem" }}
-              placeholder="Search by school name, ID, IP address, city, or token..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+            {/* Filter and Search Bar */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+              {/* Search Input */}
+              <div style={{ position: "relative", flex: 1, minWidth: "16rem" }}>
+                <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)" }} />
+                <input
+                  type="text"
+                  className="input"
+                  style={{ paddingLeft: "2.5rem" }}
+                  placeholder="Search by school name, ID, license key, IP address, or token..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
 
-          {/* Status Filter Buttons */}
-          <div style={{ display: "flex", gap: "0.4rem", background: "rgba(15, 23, 42, 0.7)", padding: "0.3rem", borderRadius: "0.75rem", border: "1px solid var(--border-subtle)" }}>
-            {[
-              { id: "all", label: "All" },
-              { id: "active", label: "Active" },
-              { id: "locked_readonly", label: "Read-Only" },
-              { id: "revoked", label: "Revoked" },
-              { id: "burned", label: "Installed" },
-              { id: "unused", label: "Unused Tokens" }
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setStatusFilter(f.id)}
-                className="btn btn-sm"
-                style={{
-                  background: statusFilter === f.id ? "var(--primary)" : "transparent",
-                  color: statusFilter === f.id ? "white" : "var(--text-muted)",
-                  padding: "0.35rem 0.65rem"
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
+              {/* Status Filter Buttons */}
+              <div style={{ display: "flex", gap: "0.4rem", background: "rgba(15, 23, 42, 0.7)", padding: "0.3rem", borderRadius: "0.75rem", border: "1px solid var(--border-subtle)", flexWrap: "wrap" }}>
+                {[
+                  { id: "all", label: "All" },
+                  { id: "active", label: "Active" },
+                  { id: "legacy", label: "? Existing Firebase" },
+                  { id: "locked_readonly", label: "Read-Only" },
+                  { id: "revoked", label: "Revoked" },
+                  { id: "burned", label: "Installed" },
+                  { id: "unused", label: "Unused Tokens" }
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setStatusFilter(f.id)}
+                    className="btn btn-sm"
+                    style={{
+                      background: statusFilter === f.id ? "var(--primary)" : "transparent",
+                      color: statusFilter === f.id ? "white" : "var(--text-muted)",
+                      padding: "0.35rem 0.65rem"
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Schools Cards Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(24rem, 1fr))", gap: "1.25rem" }}>
-          {filteredSchools.map((s) => (
-            <SchoolCard
-              key={s.id}
-              school={s}
-              onOpenRemote={(target) => setSelectedSchoolForRemote(target)}
-              onRequireKey={() => setIsKeyModalOpen(true)}
-              onRequire2FA={handleRequire2FA}
-              onActionComplete={() => {}}
-            />
-          ))}
-        </div>
-
-        {filteredSchools.length === 0 && (
-          <div className="glass-card" style={{ textAlign: "center", padding: "4rem 2rem", color: "var(--text-dim)" }}>
-            <School size={36} style={{ margin: "0 auto 1rem auto", opacity: 0.4 }} />
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-main)" }}>No Schools Found</h3>
-            <p style={{ fontSize: "0.8rem", maxWidth: "24rem", margin: "0.5rem auto 1.5rem auto" }}>
-              {searchQuery ? "No schools match your search query." : "No schools have been registered yet. Click 'Register School' above to issue your first unified token and license."}
-            </p>
-            <button className="btn btn-primary" onClick={() => setIsCreateModalOpen(true)}>
-              <Sparkles size={16} />
-              <span>Register First School</span>
-            </button>
-          </div>
+            {/* School Client Cards Grid */}
+            {filteredSchools.length === 0 ? (
+              <div className="glass-card" style={{ padding: "4rem 2rem", textAlign: "center" }}>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>
+                  {searchQuery ? "No schools matched your search criteria." : "No school licenses or tokens found. Register your first school to begin."}
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(24rem, 1fr))", gap: "1.25rem" }}>
+                {filteredSchools.map((school) => (
+                  <SchoolCard
+                    key={school.id}
+                    school={school}
+                    onOpenRemote={(s) => setSelectedSchoolForRemote(s)}
+                    onRequireKey={() => setIsKeyModalOpen(true)}
+                    onRequire2FA={handleRequire2FA}
+                    onActionComplete={() => {}}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
+
+        {/* TAB 2: USER & ACCESS MANAGEMENT */}
+        {activeNavTab === "users" && (
+          <UserManagement
+            currentUser={user}
+            schools={schools}
+            onRequire2FA={handleRequire2FA}
+          />
+        )}
+
       </main>
 
-      {/* Modals */}
+      {/* MODALS */}
       <CreateSchoolModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onCreated={() => setIsCreateModalOpen(false)}
         onRequireKey={() => setIsKeyModalOpen(true)}
         onRequire2FA={handleRequire2FA}
-        onCreated={() => {}}
       />
 
       <RemoteControlModal
@@ -345,20 +361,29 @@ export function App() {
         isOpen={!!selectedSchoolForRemote}
         onClose={() => setSelectedSchoolForRemote(null)}
         onRequire2FA={handleRequire2FA}
-        onUpdated={() => {}}
+        onUpdated={() => setSelectedSchoolForRemote(null)}
       />
 
       <KeyManagerModal
         isOpen={isKeyModalOpen}
-        onClose={() => setIsKeyModalOpen(false)}
-        onKeySaved={() => setHasPrivateKey(true)}
+        onClose={() => {
+          setIsKeyModalOpen(false);
+          setHasPrivateKey(!!getSessionPrivateKey());
+        }}
+        onKeySaved={() => {
+          setIsKeyModalOpen(false);
+          setHasPrivateKey(true);
+        }}
       />
 
       <TwoFactorModal
         isOpen={twoFactorPrompt.isOpen}
         actionTitle={twoFactorPrompt.actionTitle}
-        onClose={() => setTwoFactorPrompt((prev) => ({ ...prev, isOpen: false }))}
-        onSuccess={() => twoFactorPrompt.callback()}
+        onClose={() => setTwoFactorPrompt((p) => ({ ...p, isOpen: false }))}
+        onSuccess={() => {
+          setTwoFactorPrompt((p) => ({ ...p, isOpen: false }));
+          twoFactorPrompt.callback();
+        }}
       />
     </div>
   );

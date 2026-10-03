@@ -257,10 +257,10 @@ export const SchoolCard: React.FC<Props> = ({
               Install Token
             </span>
             <span
-              className={`badge ${school.token?.status === "burned" ? "badge-active" : "badge-unused"}`}
+              className={`badge ${((school.token?.status as string) === "burned" || (school.token?.status as string) === "used" || Boolean(school.telemetry?.bound_machine_uuid)) ? "badge-active" : "badge-unused"}`}
               style={{ fontSize: "0.58rem", padding: "0.08rem 0.35rem" }}
             >
-              {school.token?.status === "burned" ? "Bound" : "Unused"}
+              {((school.token?.status as string) === "burned" || (school.token?.status as string) === "used" || Boolean(school.telemetry?.bound_machine_uuid)) ? "Bound" : "Unused"}
             </span>
           </div>
 

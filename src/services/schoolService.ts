@@ -29,7 +29,14 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
 
     // 1. Ingest all modern unified schools
     for (const school of modernSchools) {
-      map.set(school.id, { ...school });
+      const s = { ...school };
+      if (s.telemetry?.bound_machine_uuid && s.token?.status !== "burned") {
+        s.token = {
+          ...s.token,
+          status: "burned"
+        };
+      }
+      map.set(s.id, s);
     }
 
     // 2. Ingest legacy licenses
@@ -51,10 +58,19 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
         if (lic.location) existing.telemetry.location = lic.location;
         if (lic.isp) existing.telemetry.isp = lic.isp;
         if (lic.last_active_at) existing.telemetry.last_active_at = lic.last_active_at;
+
+        if (existing.telemetry?.bound_machine_uuid && existing.token?.status !== "burned") {
+          existing.token = {
+            ...existing.token,
+            status: "burned"
+          };
+        }
       } else {
         const matchedToken = legacyTokens.find(
           (t) => t.license_key === licKey || t.school_id === schoolId || (lic.school_name && t.school_name === lic.school_name)
         );
+
+        const isLicBurned = Boolean(lic.bound_machine_uuid) || matchedToken?.status === "burned" || matchedToken?.status === "used" || Boolean(matchedToken?.bound_machine_uuid);
 
         const synth: SchoolClient = {
           id: schoolId,
@@ -71,7 +87,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
           token: matchedToken
             ? {
                 token_string: matchedToken.token || matchedToken.id,
-                status: matchedToken.status || "unused",
+                status: isLicBurned ? "burned" : (matchedToken.status || "unused"),
                 burned_at: matchedToken.burned_at || null
               }
             : {
@@ -100,14 +116,34 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
       }
     }
 
-    // 3. Ingest standalone tokens
+    // 3. Ingest and merge tokens from install_tokens
     for (const tok of legacyTokens) {
       const tokId = tok.id || tok.token || "";
-      const alreadyLinked = Array.from(map.values()).some(
-        (s) => s.token?.token_string === tokId || (tok.license_key && s.license?.key === tok.license_key)
+      const existing = Array.from(map.values()).find(
+        (s) => s.token?.token_string === tokId || (tok.license_key && s.license?.key === tok.license_key) || (tok.school_id && s.id === tok.school_id)
       );
 
-      if (!alreadyLinked) {
+      if (existing) {
+        // Real-time synchronization of token status from install_tokens collection into the school object
+        const isBurned = tok.status === "burned" || tok.status === "used" || Boolean(tok.bound_machine_uuid) || Boolean(existing.telemetry?.bound_machine_uuid);
+        existing.token = {
+          token_string: existing.token?.token_string || tokId,
+          status: isBurned ? "burned" : (tok.status || "unused"),
+          burned_at: tok.burned_at || existing.token?.burned_at || null
+        };
+        if (!existing.telemetry) {
+          existing.telemetry = { bound_machine_uuid: null, public_ip: null, location: null, isp: null, hostname: null, last_active_at: null };
+        }
+        if (tok.bound_machine_uuid && !existing.telemetry.bound_machine_uuid) {
+          existing.telemetry.bound_machine_uuid = tok.bound_machine_uuid;
+        }
+        if (tok.hostname && !existing.telemetry.hostname) existing.telemetry.hostname = tok.hostname;
+        if (tok.public_ip && !existing.telemetry.public_ip) existing.telemetry.public_ip = tok.public_ip;
+        if (tok.location && !existing.telemetry.location) existing.telemetry.location = tok.location;
+        if (tok.isp && !existing.telemetry.isp) existing.telemetry.isp = tok.isp;
+        if (tok.burned_at && !existing.telemetry.last_active_at) existing.telemetry.last_active_at = tok.burned_at;
+      } else {
+        const isBurned = tok.status === "burned" || tok.status === "used" || Boolean(tok.bound_machine_uuid);
         const synth: SchoolClient = {
           id: `token_${tokId}`,
           school_name: tok.school_name || `Install Token (${tokId})`,
@@ -121,7 +157,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
           is_legacy_token: true,
           token: {
             token_string: tokId,
-            status: tok.status === "burned" ? "burned" : "unused",
+            status: isBurned ? "burned" : "unused",
             burned_at: tok.burned_at || null
           },
           license: {
@@ -136,7 +172,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
             location: tok.location || null,
             isp: tok.isp || null,
             hostname: tok.hostname || null,
-            last_active_at: tok.last_active_at || null
+            last_active_at: tok.last_active_at || tok.burned_at || null
           },
           created_at: tok.created_at || new Date().toISOString(),
           updated_at: tok.created_at || new Date().toISOString()

@@ -1,4 +1,4 @@
-﻿// Type definitions for SIMS Central Licensing & Telemetry Portal
+// Type definitions for SIMS Central Licensing & Telemetry Portal
 
 export type LicenseStatus = 'active' | 'locked_readonly' | 'revoked' | 'expired';
 
@@ -19,7 +19,7 @@ export interface SchoolClient {
   is_legacy_token?: boolean; // True if loaded from legacy 'install_tokens' collection
   token: {
     token_string: string; // e.g. 'SIMS-TOK-APS-ISB-8F2K'
-    status: 'unused' | 'burned';
+    status: 'unused' | 'burned' | 'used';
     burned_at: string | null;
   };
   license: {

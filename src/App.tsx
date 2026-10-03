@@ -120,8 +120,8 @@ export function App() {
 
     if (statusFilter === "all") return true;
     if (statusFilter === "legacy") return school.is_legacy || school.is_legacy_token;
-    if (statusFilter === "burned") return school.token?.status === "burned";
-    if (statusFilter === "unused") return school.token?.status === "unused";
+    if (statusFilter === "burned") return (school.token?.status as string) === "burned" || (school.token?.status as string) === "used" || Boolean(school.telemetry?.bound_machine_uuid);
+    if (statusFilter === "unused") return ((school.token?.status as string) === "unused" || !school.token?.status) && !school.telemetry?.bound_machine_uuid;
     return school.status === statusFilter;
   });
 

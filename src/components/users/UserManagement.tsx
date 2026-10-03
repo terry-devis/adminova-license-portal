@@ -18,7 +18,11 @@ import {
   Sparkles,
   Lock,
   Mail,
-  AlertCircle
+  AlertCircle,
+  Copy,
+  Check,
+  ExternalLink,
+  ShieldAlert
 } from "lucide-react";
 
 interface Props {
@@ -34,6 +38,46 @@ interface AdminRecord {
   created_at: string;
   is_root?: boolean;
 }
+
+const FIRESTORE_RULES_SNIPPET = `rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Authenticated portal administrators
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 1. Unified Schools (Portal v3)
+    match /schools/{schoolId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 2. Portal Administrators
+    match /portal_admins/{adminId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 3. Software Licenses (Public read for client app verification, write for admin)
+    match /licenses/{licenseKey} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // 4. One-Time Setup Tokens (Public read & update for installer, write for admin)
+    match /install_tokens/{tokenId} {
+      allow read, update: if true;
+      allow create, delete: if isAuthenticated();
+    }
+
+    // Backwards compatibility for legacy tokens
+    match /tokens/{tokenId} {
+      allow read, update: if true;
+      allow create, delete: if isAuthenticated();
+    }
+  }
+}`;
 
 export const UserManagement: React.FC<Props> = ({
   currentUser,
@@ -52,19 +96,51 @@ export const UserManagement: React.FC<Props> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
+  // Permissions state
+  const [permissionError, setPermissionError] = useState(false);
+  const [copiedRules, setCopiedRules] = useState(false);
+
   // Firestore admins list
   const [admins, setAdmins] = useState<AdminRecord[]>([]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "portal_admins"), (snapshot) => {
-      const list: AdminRecord[] = snapshot.docs.map((d) => ({
-        uid: d.id,
-        ...(d.data() as Omit<AdminRecord, "uid">)
-      }));
-      setAdmins(list);
-    });
-    return () => unsub();
+    let isSubscribed = true;
+    try {
+      const unsub = onSnapshot(
+        collection(db, "portal_admins"),
+        (snapshot) => {
+          if (!isSubscribed) return;
+          const list: AdminRecord[] = snapshot.docs.map((d) => ({
+            uid: d.id,
+            ...(d.data() as Omit<AdminRecord, "uid">)
+          }));
+          setAdmins(list);
+          setPermissionError(false);
+        },
+        (error) => {
+          console.warn("Firestore portal_admins subscription error:", error);
+          if (isSubscribed) {
+            if (error.code === "permission-denied" || error.message?.includes("Missing or insufficient permissions")) {
+              setPermissionError(true);
+            }
+          }
+        }
+      );
+      return () => {
+        isSubscribed = false;
+        unsub();
+      };
+    } catch (err: any) {
+      console.warn("portal_admins listener error:", err);
+      setPermissionError(true);
+    }
   }, []);
+
+  const handleCopyRules = () => {
+    navigator.clipboard.writeText(FIRESTORE_RULES_SNIPPET);
+    setCopiedRules(true);
+    setTimeout(() => setCopiedRules(false), 2500);
+  };
 
   const handleGeneratePassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
@@ -112,12 +188,20 @@ export const UserManagement: React.FC<Props> = ({
         await signOut(secondaryAuth);
 
         // Store role in Firestore
-        await setDoc(doc(db, "portal_admins", newUid), {
-          uid: newUid,
-          email: cleanEmail,
-          role,
-          created_at: new Date().toISOString()
-        });
+        try {
+          await setDoc(doc(db, "portal_admins", newUid), {
+            uid: newUid,
+            email: cleanEmail,
+            role,
+            created_at: new Date().toISOString()
+          });
+        } catch (dbErr: any) {
+          if (dbErr.code === "permission-denied" || dbErr.message?.includes("Missing or insufficient permissions")) {
+            setPermissionError(true);
+            throw new Error("Admin created in Firebase Auth, but Firestore write failed due to Missing Permissions. Please update your Firestore Security Rules in Firebase Console.");
+          }
+          throw dbErr;
+        }
 
         setSuccessMsg(`Admin account created successfully for ${cleanEmail}!`);
         setEmail("");
@@ -142,7 +226,12 @@ export const UserManagement: React.FC<Props> = ({
         try {
           await deleteDoc(doc(db, "portal_admins", adm.uid));
         } catch (e: any) {
-          alert("Error removing admin: " + e.message);
+          if (e.code === "permission-denied" || e.message?.includes("Missing or insufficient permissions")) {
+            setPermissionError(true);
+            alert("Firestore Permission Denied: Please update your Firestore Security Rules in the Firebase Console.");
+          } else {
+            alert("Error removing admin: " + e.message);
+          }
         }
       }
     });
@@ -150,6 +239,81 @@ export const UserManagement: React.FC<Props> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+      {/* Permissions Alert Banner if Firestore rules block portal_admins */}
+      {permissionError && (
+        <div
+          style={{
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            borderRadius: "0.75rem",
+            padding: "1rem 1.25rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+            boxShadow: "var(--shadow-sm)"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+              <ShieldAlert size={22} style={{ color: "#d97706", flexShrink: 0, marginTop: "0.15rem" }} />
+              <div>
+                <h4 style={{ fontSize: "0.92rem", fontWeight: 700, color: "#92400e", margin: 0 }}>
+                  Firestore Permission Required: "Missing or insufficient permissions"
+                </h4>
+                <p style={{ fontSize: "0.8rem", color: "#b45309", margin: "0.3rem 0 0 0", lineHeight: 1.45 }}>
+                  Your Firebase Firestore Security Rules currently restrict access to the <code style={{ background: "#fef3c7", padding: "0.1rem 0.35rem", borderRadius: "0.25rem", fontWeight: 600 }}>portal_admins</code> collection.
+                  Update your rules in the Firebase Console to allow authenticated portal administrators.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={handleCopyRules}
+                className="btn btn-sm"
+                style={{
+                  background: "#d97706",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 600
+                }}
+              >
+                {copiedRules ? <Check size={14} /> : <Copy size={14} />}
+                <span>{copiedRules ? "Rules Copied!" : "Copy Firestore Rules"}</span>
+              </button>
+
+              <a
+                href="https://console.firebase.google.com/project/sims-licensing/firestore/rules"
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-sm btn-outline"
+                style={{
+                  color: "#92400e",
+                  borderColor: "#fde68a",
+                  background: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  fontSize: "0.75rem"
+                }}
+              >
+                <ExternalLink size={14} />
+                <span>Open Firebase Console Rules</span>
+              </a>
+            </div>
+          </div>
+
+          <div style={{ background: "#ffffff", padding: "0.6rem 0.85rem", borderRadius: "0.5rem", border: "1px solid #fef3c7", fontSize: "0.75rem", color: "#78350f" }}>
+            <strong>Quick Fix:</strong> Click <em>"Copy Firestore Rules"</em> above, go to <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong>, paste the content, and click <strong>"Publish"</strong>.
+          </div>
+        </div>
+      )}
+
       {/* Sub navigation bar */}
       <div style={{ display: "flex", gap: "0.4rem", background: "var(--bg-subtle)", padding: "0.25rem", borderRadius: "0.65rem", border: "1px solid var(--border-subtle)", width: "fit-content" }}>
         <button
@@ -308,36 +472,44 @@ export const UserManagement: React.FC<Props> = ({
               <div>
                 <button
                   type="submit"
-                  className="btn btn-primary"
-                  style={{ width: "100%", padding: "0.68rem 1rem" }}
                   disabled={isSubmitting}
+                  className="btn btn-primary"
+                  style={{ width: "100%", height: "2.4rem" }}
                 >
-                  {isSubmitting ? "Creating..." : "+ Add Administrator"}
+                  {isSubmitting ? (
+                    <span className="animate-spin" style={{ display: "inline-block", width: "1rem", height: "1rem", border: "2px solid #ffffff", borderTopColor: "transparent", borderRadius: "50%" }} />
+                  ) : (
+                    <span>Add Administrator</span>
+                  )}
                 </button>
               </div>
             </form>
           </div>
 
-          {/* Table: Admin list */}
+          {/* Card: Active Administrators List */}
           <div className="glass-card" style={{ padding: "0", overflow: "hidden" }}>
-            <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <strong style={{ fontSize: "0.85rem", color: "var(--text-main)" }}>Authorized Console Accounts</strong>
-              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Total: {admins.length + 1}</span>
+            <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "var(--text-main)" }}>
+                Authorized Portal Administrators
+              </div>
+              <span className="badge badge-active" style={{ fontSize: "0.72rem" }}>
+                {admins.filter(a => a.email !== currentUser?.email).length + (currentUser ? 1 : 0)} Accounts
+              </span>
             </div>
 
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", textAlign: "left" }}>
               <thead>
                 <tr style={{ background: "var(--bg-subtle)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.68rem", letterSpacing: "0.05em", borderBottom: "1px solid var(--border-subtle)" }}>
-                  <th style={{ padding: "0.75rem 1.25rem" }}>Administrator</th>
+                  <th style={{ padding: "0.75rem 1.25rem" }}>Admin Email & Identity</th>
                   <th style={{ padding: "0.75rem 1rem" }}>Role</th>
-                  <th style={{ padding: "0.75rem 1rem" }}>Security</th>
-                  <th style={{ padding: "0.75rem 1rem" }}>Created</th>
+                  <th style={{ padding: "0.75rem 1rem" }}>Auth Method</th>
+                  <th style={{ padding: "0.75rem 1rem" }}>Created Date</th>
                   <th style={{ padding: "0.75rem 1.25rem", textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {/* Current Logged-in Master Admin Row */}
-                <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                {/* Active Master Admin */}
+                <tr style={{ borderBottom: "1px solid var(--border-subtle)", background: "rgba(79, 70, 229, 0.02)" }}>
                   <td style={{ padding: "0.85rem 1.25rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                       <strong style={{ color: "var(--text-main)" }}>{currentUser?.email}</strong>
@@ -449,7 +621,7 @@ export const UserManagement: React.FC<Props> = ({
                           <span>{s.telemetry?.location || "Unknown"}</span>
                         </div>
                         <div className="mono" style={{ fontSize: "0.68rem", color: "var(--text-dim)" }}>
-                          {s.telemetry?.public_ip || "—"}
+                          {s.telemetry?.public_ip || "-"}
                         </div>
                       </td>
                       <td style={{ padding: "0.85rem 1rem" }}>

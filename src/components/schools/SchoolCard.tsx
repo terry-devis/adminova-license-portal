@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import {
   Copy,
   Check,
@@ -10,14 +10,16 @@ import {
   Globe,
   Cpu,
   Sparkles,
-  Ticket
+  Ticket,
+  Edit3
 } from "lucide-react";
 import type { SchoolClient } from "../../types";
-import { resetMachineLock, renewLicense, deleteSchool, migrateLegacySchool } from "../../services/schoolService";
+import { resetMachineLock, renewLicense, deleteSchool, migrateLegacySchool, updateSchoolAndLicense } from "../../services/schoolService";
 
 interface Props {
   school: SchoolClient;
   onOpenRemote: (school: SchoolClient) => void;
+  onEdit: (school: SchoolClient) => void;
   onRequireKey: () => void;
   onRequire2FA: (actionTitle: string, callback: () => void) => void;
   onActionComplete: () => void;
@@ -26,6 +28,7 @@ interface Props {
 export const SchoolCard: React.FC<Props> = ({
   school,
   onOpenRemote,
+  onEdit,
   onRequireKey,
   onRequire2FA,
   onActionComplete
@@ -33,9 +36,24 @@ export const SchoolCard: React.FC<Props> = ({
   const [copiedToken, setCopiedToken] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
   const [migrating, setMigrating] = useState(false);
+  const [resettingLock, setResettingLock] = useState(false);
 
   const isExpired = new Date(school.expires_at).getTime() < Date.now();
   const daysLeft = Math.ceil((new Date(school.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+  const isOnline = Boolean(
+    school.telemetry?.last_active_at &&
+    Date.now() - new Date(school.telemetry.last_active_at).getTime() < 12 * 60 * 1000
+  );
+
+  const getLastActiveText = () => {
+    if (!school.telemetry?.last_active_at) return "Never connected";
+    const diffSec = Math.floor((Date.now() - new Date(school.telemetry.last_active_at).getTime()) / 1000);
+    if (diffSec < 60) return "Just now";
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    return new Date(school.telemetry.last_active_at).toLocaleDateString("en-GB");
+  };
 
   const copyToClipboard = (text: string, isToken: boolean) => {
     navigator.clipboard.writeText(text);
@@ -60,15 +78,36 @@ export const SchoolCard: React.FC<Props> = ({
     }
   };
 
-  const handleResetLock = () => {
-    onRequire2FA(`Reset Hardware Lock for ${school.school_name}`, async () => {
-      try {
-        await resetMachineLock(school);
-        onActionComplete();
-      } catch (e: any) {
-        alert("Failed to reset hardware lock: " + e.message);
-      }
-    });
+  const handleResetLock = async () => {
+    const isBound = Boolean(school.telemetry?.bound_machine_uuid);
+    const msg = isBound
+      ? `Are you sure you want to RESET the hardware lock for "${school.school_name}"?\n\nBound Machine: ${school.telemetry?.hostname || "PC"} (${school.telemetry?.bound_machine_uuid})\n\nThis will clear the motherboard binding and unlock the install token so SIMS can be activated on any PC.`
+      : `Hardware lock is already unbound for "${school.school_name}". Do you still want to ensure all tokens and machine locks are reset to unused?`;
+
+    if (!confirm(msg)) {
+      return;
+    }
+
+    setResettingLock(true);
+    try {
+      await resetMachineLock(school);
+      onActionComplete();
+      alert(`✅ Hardware lock for "${school.school_name}" has been successfully reset! Machine UUID is now cleared.`);
+    } catch (e: any) {
+      alert("Failed to reset hardware lock: " + (e.message || String(e)));
+    } finally {
+      setResettingLock(false);
+    }
+  };
+
+  const handleClearBroadcast = async () => {
+    if (!confirm(`Clear and remove broadcast notice for "${school.school_name}"?`)) return;
+    try {
+      await updateSchoolAndLicense(school, { broadcast_announcement: "" });
+      onActionComplete();
+    } catch (e: any) {
+      alert("Failed to clear broadcast notice: " + (e.message || String(e)));
+    }
   };
 
   const handleRenew = () => {
@@ -134,13 +173,24 @@ export const SchoolCard: React.FC<Props> = ({
             </span>
             {school.is_legacy && (
               <span className="badge" style={{ background: "var(--amber-light)", color: "var(--amber)", borderColor: "#fde68a", fontSize: "0.62rem" }}>
-                ⚡ Existing License
+                Existing License
               </span>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.3rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.3rem", flexWrap: "wrap" }}>
             <span className="badge badge-unused">{school.plan}</span>
             {getStatusBadge()}
+            {isOnline ? (
+              <span className="badge" style={{ background: "#ecfdf5", color: "#065f46", borderColor: "#a7f3d0", display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.62rem" }} title={`Active Heartbeat: ${getLastActiveText()}`}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+                Online ({getLastActiveText()})
+              </span>
+            ) : (
+              <span className="badge" style={{ background: "var(--bg-subtle)", color: "var(--text-dim)", borderColor: "var(--border-subtle)", display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.62rem" }} title={`Last Connected: ${getLastActiveText()}`}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#9ca3af" }} />
+                Offline ({getLastActiveText()})
+              </span>
+            )}
           </div>
         </div>
 
@@ -158,6 +208,17 @@ export const SchoolCard: React.FC<Props> = ({
             </button>
           )}
 
+          {/* EDIT BUTTON */}
+          <button
+            onClick={() => onEdit(school)}
+            className="btn btn-sm btn-outline"
+            style={{ padding: "0.35rem 0.65rem", fontWeight: 600, background: "#ffffff" }}
+            title="Edit School Name, Plan, Expiry Date, Hardware Lock & Custom Modules"
+          >
+            <Edit3 size={13} color="var(--primary)" />
+            <span>Edit</span>
+          </button>
+
           <button
             onClick={() => onOpenRemote(school)}
             className="btn btn-sm btn-primary"
@@ -172,8 +233,18 @@ export const SchoolCard: React.FC<Props> = ({
 
       {/* Broadcast alert if present */}
       {school.broadcast_announcement && (
-        <div style={{ background: "var(--cyan-light)", border: "1px solid #bae6fd", borderRadius: "0.5rem", padding: "0.45rem 0.7rem", fontSize: "0.74rem", color: "#0369a1" }}>
-          <strong>Notice:</strong> {school.broadcast_announcement}
+        <div style={{ background: "var(--cyan-light)", border: "1px solid #bae6fd", borderRadius: "0.55rem", padding: "0.45rem 0.75rem", fontSize: "0.74rem", color: "#0369a1", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", overflow: "hidden" }}>
+            <span style={{ fontSize: "0.85rem" }}>📢</span>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}><strong>Notice:</strong> {school.broadcast_announcement}</span>
+          </div>
+          <button
+            onClick={handleClearBroadcast}
+            style={{ background: "none", border: "none", color: "#0284c7", cursor: "pointer", fontSize: "0.68rem", fontWeight: 700, textDecoration: "underline", flexShrink: 0 }}
+            title="Clear and remove notice from client school app"
+          >
+            Clear
+          </button>
         </div>
       )}
 
@@ -254,14 +325,14 @@ export const SchoolCard: React.FC<Props> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "var(--text-muted)" }}>
             <Globe size={12} color="var(--cyan)" />
             <span className="mono" style={{ color: school.telemetry?.public_ip ? "var(--text-main)" : "var(--text-dim)" }}>
-              {school.telemetry?.public_ip || "IP: —"}
+              {school.telemetry?.public_ip || "IP: -"}
             </span>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "var(--text-muted)" }}>
-            <Cpu size={12} color="var(--emerald)" />
-            <span className="mono" style={{ color: school.telemetry?.bound_machine_uuid ? "var(--text-main)" : "var(--text-dim)" }} title={school.telemetry?.bound_machine_uuid || ""}>
-              {school.telemetry?.bound_machine_uuid ? `${school.telemetry.bound_machine_uuid.substring(0, 8)}...` : "Unbound"}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "var(--text-muted)", overflow: "hidden" }}>
+            <Cpu size={12} color={school.telemetry?.bound_machine_uuid ? "var(--emerald)" : "var(--text-dim)"} />
+            <span className="mono" style={{ color: school.telemetry?.bound_machine_uuid ? "var(--text-main)" : "var(--text-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={`Hostname: ${school.telemetry?.hostname || 'Unknown'} | UUID: ${school.telemetry?.bound_machine_uuid || 'Unbound'}`}>
+              {school.telemetry?.hostname ? `${school.telemetry.hostname} • ` : ""}{school.telemetry?.bound_machine_uuid ? `${school.telemetry.bound_machine_uuid.substring(0, 8)}...` : "Unbound (Any PC)"}
             </span>
           </div>
         </div>
@@ -298,13 +369,29 @@ export const SchoolCard: React.FC<Props> = ({
         {/* Card Action Footer */}
         <div style={{ display: "flex", gap: "0.35rem", alignItems: "center" }}>
           <button
-            onClick={handleResetLock}
+            onClick={() => onEdit(school)}
             className="btn btn-sm btn-outline"
-            style={{ padding: "0.25rem 0.45rem", fontSize: "0.7rem" }}
-            title="Allows the school to reinstall SIMS if their PC crashed or was formatted"
+            style={{ padding: "0.25rem 0.5rem", fontSize: "0.7rem" }}
+            title="Edit School Name, Plan, Expiry & Modules"
           >
-            <RotateCcw size={11} />
-            <span>Reset Lock</span>
+            <Edit3 size={11} />
+            <span>Customize</span>
+          </button>
+
+          <button
+            onClick={handleResetLock}
+            disabled={resettingLock}
+            className="btn btn-sm btn-outline"
+            style={{
+              padding: "0.25rem 0.5rem",
+              fontSize: "0.7rem",
+              borderColor: school.telemetry?.bound_machine_uuid ? "#cbd5e1" : "#e2e8f0",
+              background: resettingLock ? "var(--bg-subtle)" : undefined
+            }}
+            title="Clears motherboard BIOS UUID binding and resets install token so SIMS can be reinstalled or transferred"
+          >
+            <RotateCcw size={11} className={resettingLock ? "spin" : ""} />
+            <span>{resettingLock ? "Resetting..." : "Reset Lock"}</span>
           </button>
 
           <button

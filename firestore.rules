@@ -1,0 +1,81 @@
+﻿rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // =============================================================
+    // 1. Single-Use Disposable Installation Tokens (install_tokens)
+    // =============================================================
+    match /install_tokens/{tokenId} {
+      // Authenticated Admin (via License Admin Portal):
+      // Full permission to list, generate, reset, and delete tokens
+      allow read, write, delete: if request.auth != null;
+
+      // Client Setup Installer (SIMS-Installer.exe on client PC):
+      // Can query/read a single token by exact ID to verify it exists and is unused
+      allow get: if true;
+
+      // Can burn the token upon successful installation and record telemetry
+      // Permits transition from 'unused' to 'burned' or 'used'
+      allow update: if (resource.data.status == 'unused' && request.resource.data.status in ['burned', 'used'])
+                    || request.auth != null;
+    }
+
+    // =============================================================
+    // 2. School Cryptographic Licenses (licenses)
+    // =============================================================
+    match /licenses/{licenseId} {
+      // Authenticated Admin (via License Admin Portal):
+      // Full permission to list, create, edit, and delete licenses
+      allow read, write, delete: if request.auth != null;
+
+      // Client instances / apps can read their specific license
+      allow get: if true;
+
+      // Client instances / apps can update heartbeat telemetry & machine binding:
+      // - Only telemetry fields can be modified (status, expires_at, modules, rsa_signature are locked)
+      // - bound_machine_uuid can only be set if currently unset or matching
+      allow update: if request.auth != null
+                    || (
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['telemetry', 'bound_machine_uuid', 'hostname', 'public_ip', 'location', 'isp', 'last_active_at', 'installed_version', 'updated_at'])
+                      && (
+                        !('bound_machine_uuid' in resource.data)
+                        || resource.data.bound_machine_uuid == null
+                        || resource.data.bound_machine_uuid == ''
+                        || resource.data.bound_machine_uuid == request.resource.data.bound_machine_uuid
+                      )
+                    );
+    }
+
+    // =============================================================
+    // 3. Unified Schools & Institutions (schools)
+    // =============================================================
+    match /schools/{schoolId} {
+      // Authenticated Admin: Full permission to manage schools, modules & telemetry
+      allow read, write, delete: if request.auth != null;
+
+      // Client instances can read and report telemetry heartbeat
+      allow get: if true;
+      allow update: if request.auth != null
+                    || (
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['telemetry', 'updated_at'])
+                    );
+    }
+
+    // =============================================================
+    // 4. Portal Administrator Accounts (portal_admins)
+    // =============================================================
+    match /portal_admins/{adminId} {
+      // Authenticated Admin: Full permission to manage portal team members
+      allow read, write, delete: if request.auth != null;
+    }
+
+    // Backwards compatibility for legacy tokens collection
+    match /tokens/{tokenId} {
+      allow read, write, delete: if request.auth != null;
+      allow get: if true;
+      allow update: if request.auth != null || (resource.data.status == 'unused' && request.resource.data.status in ['burned', 'used']);
+    }
+  }
+}

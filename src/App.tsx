@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -18,6 +18,7 @@ import type { SchoolClient } from "./types";
 import { Navbar } from "./components/layout/Navbar";
 import { SchoolCard } from "./components/schools/SchoolCard";
 import { CreateSchoolModal } from "./components/schools/CreateSchoolModal";
+import { EditSchoolModal } from "./components/schools/EditSchoolModal";
 import { RemoteControlModal } from "./components/schools/RemoteControlModal";
 import { KeyManagerModal } from "./components/security/KeyManagerModal";
 import { TwoFactorModal } from "./components/security/TwoFactorModal";
@@ -48,6 +49,7 @@ export function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [selectedSchoolForRemote, setSelectedSchoolForRemote] = useState<SchoolClient | null>(null);
+  const [selectedSchoolForEdit, setSelectedSchoolForEdit] = useState<SchoolClient | null>(null);
 
   // 2FA Guard state
   const [twoFactorPrompt, setTwoFactorPrompt] = useState<{
@@ -101,51 +103,49 @@ export function App() {
     });
   };
 
-  // Filtered Schools
-  const filteredSchools = schools.filter((s) => {
-    const q = searchQuery.toLowerCase();
+  // Filter & Search Logic
+  const filteredSchools = schools.filter((school) => {
+    const q = searchQuery.toLowerCase().trim();
     const matchesSearch =
-      s.school_name.toLowerCase().includes(q) ||
-      s.id.toLowerCase().includes(q) ||
-      (s.token?.token_string || "").toLowerCase().includes(q) ||
-      (s.license?.key || "").toLowerCase().includes(q) ||
-      (s.telemetry?.public_ip || "").toLowerCase().includes(q) ||
-      (s.telemetry?.location || "").toLowerCase().includes(q);
+      !q ||
+      school.school_name.toLowerCase().includes(q) ||
+      school.id.toLowerCase().includes(q) ||
+      (school.license?.key && school.license.key.toLowerCase().includes(q)) ||
+      (school.token?.token_string && school.token.token_string.toLowerCase().includes(q)) ||
+      (school.telemetry?.public_ip && school.telemetry.public_ip.toLowerCase().includes(q)) ||
+      (school.telemetry?.hostname && school.telemetry.hostname.toLowerCase().includes(q)) ||
+      (school.telemetry?.location && school.telemetry.location.toLowerCase().includes(q));
 
     if (!matchesSearch) return false;
 
     if (statusFilter === "all") return true;
-    if (statusFilter === "active") return s.status === "active";
-    if (statusFilter === "locked_readonly") return s.status === "locked_readonly";
-    if (statusFilter === "revoked") return s.status === "revoked";
-    if (statusFilter === "burned") return s.token?.status === "burned";
-    if (statusFilter === "unused") return s.token?.status === "unused";
-    if (statusFilter === "legacy") return s.is_legacy || s.is_legacy_token;
-    return true;
+    if (statusFilter === "legacy") return school.is_legacy || school.is_legacy_token;
+    if (statusFilter === "burned") return school.token?.status === "burned";
+    if (statusFilter === "unused") return school.token?.status === "unused";
+    return school.status === statusFilter;
   });
 
-  // Stats calculation
+  // Calculate Metrics
   const totalSchools = schools.length;
   const activeCount = schools.filter((s) => s.status === "active").length;
   const lockedCount = schools.filter((s) => s.status === "locked_readonly" || s.status === "revoked").length;
   const onlineCount = schools.filter((s) => {
     if (!s.telemetry?.last_active_at) return false;
-    const diffMin = (Date.now() - new Date(s.telemetry.last_active_at).getTime()) / (1000 * 60);
-    return diffMin <= 60; // Active in last 60 minutes
+    const diffMs = Date.now() - new Date(s.telemetry.last_active_at).getTime();
+    return diffMs < 60 * 60 * 1000;
   }).length;
 
   if (authLoading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-base)" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ width: "2.5rem", height: "2.5rem", borderRadius: "0.65rem", background: "var(--primary)", margin: "0 auto 1rem auto" }}></div>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Initializing Secure Portal...</p>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+          <div className="spin" style={{ width: "2rem", height: "2rem", borderRadius: "50%", border: "3px solid var(--border-subtle)", borderTopColor: "var(--primary)" }} />
+          <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Loading licensing portal...</span>
         </div>
       </div>
     );
   }
 
-  // Login View
   if (!user) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem", background: "var(--bg-base)" }}>
@@ -290,7 +290,7 @@ export function App() {
                 {[
                   { id: "all", label: "All" },
                   { id: "active", label: "Active" },
-                  { id: "legacy", label: "⚡ Existing Firebase" },
+                  { id: "legacy", label: "Existing Firebase" },
                   { id: "locked_readonly", label: "Read-Only" },
                   { id: "revoked", label: "Revoked" },
                   { id: "burned", label: "Installed" },
@@ -328,6 +328,7 @@ export function App() {
                     key={school.id}
                     school={school}
                     onOpenRemote={(s) => setSelectedSchoolForRemote(s)}
+                    onEdit={(s) => setSelectedSchoolForEdit(s)}
                     onRequireKey={() => setIsKeyModalOpen(true)}
                     onRequire2FA={handleRequire2FA}
                     onActionComplete={() => {}}
@@ -356,6 +357,14 @@ export function App() {
         onCreated={() => setIsCreateModalOpen(false)}
         onRequireKey={() => setIsKeyModalOpen(true)}
         onRequire2FA={handleRequire2FA}
+      />
+
+      <EditSchoolModal
+        school={selectedSchoolForEdit}
+        isOpen={!!selectedSchoolForEdit}
+        onClose={() => setSelectedSchoolForEdit(null)}
+        onRequireKey={() => setIsKeyModalOpen(true)}
+        onSaved={() => setSelectedSchoolForEdit(null)}
       />
 
       <RemoteControlModal

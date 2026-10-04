@@ -4,6 +4,8 @@ export type LicenseStatus = 'active' | 'locked_readonly' | 'revoked' | 'expired'
 
 export type PlanType = 'trial' | 'standard' | 'premium' | 'enterprise';
 
+export type ScheduleTypePolicy = 'configurable' | 'day_wise' | 'single_schedule';
+
 export interface SchoolClient {
   id: string; // School Slug/Code (e.g. 'APS-ISB')
   school_name: string;
@@ -13,6 +15,7 @@ export interface SchoolClient {
   expires_at: string; // ISO string
   status: LicenseStatus;
   enabled_modules: string[]; // e.g. ['fees', 'exams', 'attendance', 'whatsapp', 'reports']
+  schedule_type_policy?: ScheduleTypePolicy; // 'configurable' | 'day_wise' | 'single_schedule'
   broadcast_announcement?: string;
   config_version: number; // Increments to trigger instant real-time sync on client
   is_legacy?: boolean; // True if loaded from legacy 'licenses' collection

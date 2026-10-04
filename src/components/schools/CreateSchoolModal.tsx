@@ -1,6 +1,6 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { School, X, CheckSquare, Square } from "lucide-react";
-import type { PlanType } from "../../types";
+import type { PlanType, ScheduleTypePolicy } from "../../types";
 import { createUnifiedSchool } from "../../services/schoolService";
 import { getSessionPrivateKey } from "../../services/cryptoService";
 
@@ -32,6 +32,7 @@ export const CreateSchoolModal: React.FC<Props> = ({
   const [contactEmail, setContactEmail] = useState("");
   const [plan, setPlan] = useState<PlanType>("standard");
   const [daysValid, setDaysValid] = useState(365);
+  const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>("configurable");
   const [selectedModules, setSelectedModules] = useState<string[]>([
     "fees",
     "exams",
@@ -89,7 +90,8 @@ export const CreateSchoolModal: React.FC<Props> = ({
           contact_email: contactEmail,
           plan,
           days_valid: daysValid,
-          enabled_modules: selectedModules
+          enabled_modules: selectedModules,
+          schedule_type_policy: schedulePolicy
         });
         onCreated();
         onClose();
@@ -194,6 +196,26 @@ export const CreateSchoolModal: React.FC<Props> = ({
                 onChange={(e) => setContactEmail(e.target.value)}
               />
             </div>
+          </div>
+
+          <div>
+            <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.3rem" }}>
+              Schedule Type Policy
+            </label>
+            <select
+              className="input"
+              value={schedulePolicy}
+              onChange={(e) => setSchedulePolicy(e.target.value as ScheduleTypePolicy)}
+            >
+              <option value="configurable">Configurable by School Admin (Default)</option>
+              <option value="day_wise">Enforce Day-Wise (Separate Schedule for Mon-Sat)</option>
+              <option value="single_schedule">Enforce Single Schedule (Universal for All Days)</option>
+            </select>
+            <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "0.2rem", display: "block" }}>
+              {schedulePolicy === "configurable" && "School admin can switch between Day-Wise and Single Universal timetable in SIMS Settings."}
+              {schedulePolicy === "day_wise" && "Enforced Day-Wise: Each weekday has a distinct schedule. Everyday tab is removed."}
+              {schedulePolicy === "single_schedule" && "Enforced Single Schedule: Universal schedule for all days. Mon-Sat tabs are hidden."}
+            </span>
           </div>
 
           <div>

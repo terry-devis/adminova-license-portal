@@ -6,12 +6,11 @@ import {
   CheckSquare,
   Square,
   Cpu,
-  Calendar,
   AlertCircle,
   ShieldAlert,
   Unlock
 } from "lucide-react";
-import type { SchoolClient, PlanType, LicenseStatus } from "../../types";
+import type { SchoolClient, PlanType, LicenseStatus, ScheduleTypePolicy } from "../../types";
 import { updateSchoolAndLicense } from "../../services/schoolService";
 import { getSessionPrivateKey } from "../../services/cryptoService";
 
@@ -45,6 +44,7 @@ export const EditSchoolModal: React.FC<Props> = ({
   const [contactPhone, setContactPhone] = useState(school.contact_phone || "");
   const [plan, setPlan] = useState<PlanType>(school.plan || "standard");
   const [status, setStatus] = useState<LicenseStatus>(school.status || "active");
+  const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>(school.schedule_type_policy || "configurable");
   const [expiresDate, setExpiresDate] = useState(() => {
     try {
       return new Date(school.expires_at).toISOString().split("T")[0];
@@ -107,6 +107,7 @@ export const EditSchoolModal: React.FC<Props> = ({
         status,
         expires_at: expiresIso,
         enabled_modules: modules,
+        schedule_type_policy: schedulePolicy,
         broadcast_announcement: broadcast.trim(),
         telemetry: {
           ...school.telemetry,
@@ -251,6 +252,32 @@ export const EditSchoolModal: React.FC<Props> = ({
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Section 2.5: Schedule Type Policy */}
+          <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "0.75rem", padding: "0.9rem" }}>
+            <span style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.6rem" }}>
+              Schedule Configuration Policy
+            </span>
+            <div>
+              <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "0.25rem" }}>
+                Enforce Timetable Mode
+              </label>
+              <select
+                className="input"
+                value={schedulePolicy}
+                onChange={(e) => setSchedulePolicy(e.target.value as ScheduleTypePolicy)}
+              >
+                <option value="configurable">Configurable by School Admin (Allow Toggle in SIMS Settings)</option>
+                <option value="day_wise">Enforce Day-Wise (Separate Schedule for Mon-Sat, Everyday tab removed)</option>
+                <option value="single_schedule">Enforce Single Schedule (Universal for All Days, day tabs hidden)</option>
+              </select>
+              <p style={{ fontSize: "0.68rem", color: "var(--text-dim)", marginTop: "0.3rem" }}>
+                {schedulePolicy === "configurable" && "ℹ️ The school administrator is free to select Day-Wise or Single Universal in SIMS Settings."}
+                {schedulePolicy === "day_wise" && "🔒 Locked to Day-Wise. SIMS Settings will show 'Enforced by License' badge and disable switching."}
+                {schedulePolicy === "single_schedule" && "🔒 Locked to Single Universal. SIMS Settings will show 'Enforced by License' badge and disable switching."}
+              </p>
             </div>
           </div>
 

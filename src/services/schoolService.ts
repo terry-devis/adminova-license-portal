@@ -6,7 +6,7 @@ import {
   onSnapshot
 } from "firebase/firestore";
 import { db } from "./firebase";
-import type { SchoolClient, PlanType, LicenseStatus } from "../types";
+import type { SchoolClient, PlanType, LicenseStatus, ScheduleTypePolicy } from "../types";
 import { signLicense, getSessionPrivateKey } from "./cryptoService";
 
 const COLLECTION_SCHOOLS = "schools";
@@ -81,6 +81,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
           expires_at: lic.expires_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           status: (lic.status as LicenseStatus) || "active",
           enabled_modules: lic.enabled_modules || ["fees", "exams", "attendance", "whatsapp", "reports"],
+          schedule_type_policy: lic.schedule_type_policy || "configurable",
           config_version: lic.config_version || 1,
           broadcast_announcement: lic.broadcast_announcement || "",
           is_legacy: true,
@@ -153,6 +154,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
           expires_at: tok.expires_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           status: "active",
           enabled_modules: ["fees", "exams", "attendance", "whatsapp", "reports"],
+          schedule_type_policy: "configurable",
           config_version: 1,
           is_legacy_token: true,
           token: {
@@ -246,6 +248,7 @@ export interface CreateSchoolParams {
   plan: PlanType;
   days_valid: number;
   enabled_modules: string[];
+  schedule_type_policy?: ScheduleTypePolicy;
 }
 
 export async function createUnifiedSchool(params: CreateSchoolParams): Promise<SchoolClient> {
@@ -277,6 +280,7 @@ export async function createUnifiedSchool(params: CreateSchoolParams): Promise<S
     expires_at: expiresIso,
     status: "active",
     enabled_modules: params.enabled_modules,
+    schedule_type_policy: params.schedule_type_policy || "configurable",
     config_version: 1,
     token: {
       token_string: tokenStr,
@@ -326,6 +330,7 @@ export async function createUnifiedSchool(params: CreateSchoolParams): Promise<S
     expires_at: expiresIso,
     rsa_signature: signature,
     enabled_modules: newSchool.enabled_modules,
+    schedule_type_policy: newSchool.schedule_type_policy,
     bound_machine_uuid: null,
     created_at: nowIso,
     updated_at: nowIso
@@ -376,6 +381,7 @@ export async function updateSchoolAndLicense(
   const newExpiresAt = updates.expires_at || school.expires_at;
   const newPlan = updates.plan || school.plan;
   const newModules = updates.enabled_modules || school.enabled_modules;
+  const newSchedulePolicy = updates.schedule_type_policy !== undefined ? updates.schedule_type_policy : (school.schedule_type_policy || "configurable");
   const newBroadcast = updates.broadcast_announcement !== undefined ? updates.broadcast_announcement : (school.broadcast_announcement || "");
   const newBoundUuid = updates.telemetry?.bound_machine_uuid !== undefined ? updates.telemetry.bound_machine_uuid : (school.telemetry?.bound_machine_uuid || null);
   const newVersion = (school.config_version || 1) + 1;
@@ -397,6 +403,7 @@ export async function updateSchoolAndLicense(
     status: newStatus,
     expires_at: newExpiresAt,
     enabled_modules: newModules,
+    schedule_type_policy: newSchedulePolicy,
     broadcast_announcement: newBroadcast,
     config_version: newVersion,
     updated_at: nowIso,
@@ -435,6 +442,7 @@ export async function updateSchoolAndLicense(
       expires_at: newExpiresAt,
       rsa_signature: signature,
       enabled_modules: newModules,
+      schedule_type_policy: newSchedulePolicy,
       broadcast_announcement: newBroadcast,
       config_version: newVersion,
       bound_machine_uuid: newBoundUuid,
@@ -474,6 +482,7 @@ export async function updateRemotePolicy(
     status?: LicenseStatus;
     enabled_modules?: string[];
     broadcast_announcement?: string;
+    schedule_type_policy?: ScheduleTypePolicy;
   }
 ): Promise<void> {
   await updateSchoolAndLicense(school, updates);

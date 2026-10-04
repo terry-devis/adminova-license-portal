@@ -180,6 +180,16 @@ export const SchoolCard: React.FC<Props> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.3rem", flexWrap: "wrap" }}>
             <span className="badge badge-unused">{school.plan}</span>
             {getStatusBadge()}
+            {school.schedule_type_policy === "single_schedule" && (
+              <span className="badge" style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe", fontSize: "0.62rem" }} title="Single Schedule enforced by license">
+                🗓️ Single Schedule
+              </span>
+            )}
+            {school.schedule_type_policy === "day_wise" && (
+              <span className="badge" style={{ background: "#f5f3ff", color: "#6d28d9", borderColor: "#ddd6fe", fontSize: "0.62rem" }} title="Day-Wise timetable enforced by license">
+                📅 Day-Wise
+              </span>
+            )}
             {isOnline ? (
               <span className="badge" style={{ background: "#ecfdf5", color: "#065f46", borderColor: "#a7f3d0", display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.62rem" }} title={`Active Heartbeat: ${getLastActiveText()}`}>
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />

@@ -1,6 +1,6 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { Sliders, ShieldAlert, X, CheckSquare, Square, Save } from "lucide-react";
-import type { SchoolClient, LicenseStatus } from "../../types";
+import type { SchoolClient, LicenseStatus, ScheduleTypePolicy } from "../../types";
 import { updateRemotePolicy } from "../../services/schoolService";
 
 interface Props {
@@ -29,6 +29,7 @@ export const RemoteControlModal: React.FC<Props> = ({
   if (!isOpen || !school) return null;
 
   const [status, setStatus] = useState<LicenseStatus>(school.status);
+  const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>(school.schedule_type_policy || "configurable");
   const [modules, setModules] = useState<string[]>(school.enabled_modules || []);
   const [broadcast, setBroadcast] = useState(school.broadcast_announcement || "");
   const [saving, setSaving] = useState(false);
@@ -45,6 +46,7 @@ export const RemoteControlModal: React.FC<Props> = ({
       try {
         await updateRemotePolicy(school, {
           status,
+          schedule_type_policy: schedulePolicy,
           enabled_modules: modules,
           broadcast_announcement: broadcast
         });
@@ -123,6 +125,32 @@ export const RemoteControlModal: React.FC<Props> = ({
                 </span>
               </div>
             )}
+          </div>
+
+          {/* Section 1.5: Schedule Type Policy */}
+          <div style={{ background: "var(--bg-subtle)", border: "1px solid var(--border-subtle)", borderRadius: "0.75rem", padding: "0.85rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.45rem" }}>
+              <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                Schedule Configuration Policy
+              </label>
+              <span className="mono" style={{ fontSize: "0.68rem", color: "var(--primary)" }}>
+                {schedulePolicy}
+              </span>
+            </div>
+            <select
+              className="input"
+              value={schedulePolicy}
+              onChange={(e) => setSchedulePolicy(e.target.value as ScheduleTypePolicy)}
+            >
+              <option value="configurable">Configurable by School Admin (Toggle in SIMS Settings)</option>
+              <option value="day_wise">Enforce Day-Wise (Separate Schedule for Mon-Sat, Everyday tab removed)</option>
+              <option value="single_schedule">Enforce Single Schedule (Universal for All Days, day tabs hidden)</option>
+            </select>
+            <p style={{ fontSize: "0.68rem", color: "var(--text-dim)", marginTop: "0.3rem" }}>
+              {schedulePolicy === "configurable" && "The school can toggle between Day-Wise and Single Universal schedule."}
+              {schedulePolicy === "day_wise" && "Locks SIMS to Day-Wise timetable mode. Settings toggle is disabled."}
+              {schedulePolicy === "single_schedule" && "Locks SIMS to Single Universal schedule. Day tabs are completely hidden."}
+            </p>
           </div>
 
           {/* Section 2: Module Gating */}

@@ -14,7 +14,7 @@ service cloud.firestore {
       // Can query/read a single token by exact ID to verify it exists and is unused
       allow get: if true;
 
-      // Can burn the token upon successful installation and record telemetry
+      // Can burn the token upon successful installation
       // Permits transition from 'unused' to 'burned' or 'used'
       allow update: if (resource.data.status == 'unused' && request.resource.data.status in ['burned', 'used'])
                     || request.auth != null;

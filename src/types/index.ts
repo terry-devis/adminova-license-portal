@@ -18,6 +18,7 @@ export interface SchoolClient {
   schedule_type_policy?: ScheduleTypePolicy; // 'configurable' | 'day_wise' | 'single_schedule'
   broadcast_announcement?: string;
   config_version: number; // Increments to trigger instant real-time sync on client
+  modules_v2?: boolean; // True when modules were configured/saved via updated portal
   is_legacy?: boolean; // True if loaded from legacy 'licenses' collection
   is_legacy_token?: boolean; // True if loaded from legacy 'install_tokens' collection
   token: {

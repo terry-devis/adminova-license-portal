@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Edit3,
   X,
@@ -11,7 +11,7 @@ import {
   Unlock
 } from "lucide-react";
 import type { SchoolClient, PlanType, LicenseStatus, ScheduleTypePolicy } from "../../types";
-import { updateSchoolAndLicense, normalizeModules } from "../../services/schoolService";
+import { updateSchoolAndLicense, resolveSchoolModules } from "../../services/schoolService";
 import { getSessionPrivateKey } from "../../services/cryptoService";
 
 interface Props {
@@ -39,28 +39,48 @@ export const EditSchoolModal: React.FC<Props> = ({
   onRequireKey,
   onSaved
 }) => {
-  if (!isOpen || !school) return null;
-
-  const [schoolName, setSchoolName] = useState(school.school_name || "");
-  const [contactEmail, setContactEmail] = useState(school.contact_email || "");
-  const [contactPhone, setContactPhone] = useState(school.contact_phone || "");
-  const [plan, setPlan] = useState<PlanType>(school.plan || "standard");
-  const [status, setStatus] = useState<LicenseStatus>(school.status || "active");
-  const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>(school.schedule_type_policy || "configurable");
+  const [schoolName, setSchoolName] = useState(school?.school_name || "");
+  const [contactEmail, setContactEmail] = useState(school?.contact_email || "");
+  const [contactPhone, setContactPhone] = useState(school?.contact_phone || "");
+  const [plan, setPlan] = useState<PlanType>(school?.plan || "standard");
+  const [status, setStatus] = useState<LicenseStatus>(school?.status || "active");
+  const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>(school?.schedule_type_policy || "configurable");
   const [expiresDate, setExpiresDate] = useState(() => {
     try {
-      return new Date(school.expires_at).toISOString().split("T")[0];
+      return school ? new Date(school.expires_at).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
     } catch {
       return new Date().toISOString().split("T")[0];
     }
   });
-  const [modules, setModules] = useState<string[]>(normalizeModules(school.enabled_modules));
+  const [modules, setModules] = useState<string[]>(school ? resolveSchoolModules(school) : []);
   const [boundUuid, setBoundUuid] = useState<string | null>(
-    school.telemetry?.bound_machine_uuid || null
+    school?.telemetry?.bound_machine_uuid || null
   );
-  const [broadcast, setBroadcast] = useState(school.broadcast_announcement || "");
+  const [broadcast, setBroadcast] = useState(school?.broadcast_announcement || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (school) {
+      setSchoolName(school.school_name || "");
+      setContactEmail(school.contact_email || "");
+      setContactPhone(school.contact_phone || "");
+      setPlan(school.plan || "standard");
+      setStatus(school.status || "active");
+      setSchedulePolicy(school.schedule_type_policy || "configurable");
+      try {
+        setExpiresDate(new Date(school.expires_at).toISOString().split("T")[0]);
+      } catch {
+        setExpiresDate(new Date().toISOString().split("T")[0]);
+      }
+      setModules(resolveSchoolModules(school));
+      setBoundUuid(school.telemetry?.bound_machine_uuid || null);
+      setBroadcast(school.broadcast_announcement || "");
+      setError("");
+    }
+  }, [school, isOpen]);
+
+  if (!isOpen || !school) return null;
 
   const toggleModule = (id: string) => {
     setModules((prev) =>

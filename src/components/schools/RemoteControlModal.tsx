@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sliders, ShieldAlert, X, CheckSquare, Square, Save } from "lucide-react";
 import type { SchoolClient, LicenseStatus, ScheduleTypePolicy } from "../../types";
-import { updateRemotePolicy, normalizeModules } from "../../services/schoolService";
+import { updateRemotePolicy, resolveSchoolModules } from "../../services/schoolService";
 
 interface Props {
   school: SchoolClient | null;
@@ -28,13 +28,22 @@ export const RemoteControlModal: React.FC<Props> = ({
   onRequire2FA,
   onUpdated
 }) => {
-  if (!isOpen || !school) return null;
-
-  const [status, setStatus] = useState<LicenseStatus>(school.status);
-  const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>(school.schedule_type_policy || "configurable");
-  const [modules, setModules] = useState<string[]>(normalizeModules(school.enabled_modules));
-  const [broadcast, setBroadcast] = useState(school.broadcast_announcement || "");
+  const [status, setStatus] = useState<LicenseStatus>(school?.status || "active");
+  const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>(school?.schedule_type_policy || "configurable");
+  const [modules, setModules] = useState<string[]>(school ? resolveSchoolModules(school) : []);
+  const [broadcast, setBroadcast] = useState(school?.broadcast_announcement || "");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (school) {
+      setStatus(school.status || "active");
+      setSchedulePolicy(school.schedule_type_policy || "configurable");
+      setModules(resolveSchoolModules(school));
+      setBroadcast(school.broadcast_announcement || "");
+    }
+  }, [school, isOpen]);
+
+  if (!isOpen || !school) return null;
 
   const toggleModule = (id: string) => {
     setModules((prev) =>

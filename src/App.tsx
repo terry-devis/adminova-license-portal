@@ -359,21 +359,25 @@ export function App() {
         onRequire2FA={handleRequire2FA}
       />
 
-      <EditSchoolModal
-        school={selectedSchoolForEdit}
-        isOpen={!!selectedSchoolForEdit}
-        onClose={() => setSelectedSchoolForEdit(null)}
-        onRequireKey={() => setIsKeyModalOpen(true)}
-        onSaved={() => setSelectedSchoolForEdit(null)}
-      />
+      {selectedSchoolForEdit && (
+        <EditSchoolModal
+          school={schools.find((s) => s.id === selectedSchoolForEdit.id) || selectedSchoolForEdit}
+          isOpen={true}
+          onClose={() => setSelectedSchoolForEdit(null)}
+          onRequireKey={() => setIsKeyModalOpen(true)}
+          onSaved={() => setSelectedSchoolForEdit(null)}
+        />
+      )}
 
-      <RemoteControlModal
-        school={selectedSchoolForRemote}
-        isOpen={!!selectedSchoolForRemote}
-        onClose={() => setSelectedSchoolForRemote(null)}
-        onRequire2FA={handleRequire2FA}
-        onUpdated={() => setSelectedSchoolForRemote(null)}
-      />
+      {selectedSchoolForRemote && (
+        <RemoteControlModal
+          school={schools.find((s) => s.id === selectedSchoolForRemote.id) || selectedSchoolForRemote}
+          isOpen={true}
+          onClose={() => setSelectedSchoolForRemote(null)}
+          onRequire2FA={handleRequire2FA}
+          onUpdated={() => setSelectedSchoolForRemote(null)}
+        />
+      )}
 
       <KeyManagerModal
         isOpen={isKeyModalOpen}

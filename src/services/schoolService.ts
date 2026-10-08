@@ -13,14 +13,35 @@ const COLLECTION_SCHOOLS = "schools";
 const COLLECTION_TOKENS = "install_tokens";
 const COLLECTION_LICENSES = "licenses";
 
-export const normalizeModules = (mods?: string[]): string[] => {
-  if (!mods || !Array.isArray(mods) || mods.length === 0) {
+export const resolveSchoolModules = (docData?: any): string[] => {
+  if (!docData) {
     return ["students", "gradebook", "fees", "exams", "attendance", "whatsapp", "reports"];
   }
-  if (!mods.includes("students") && !mods.includes("gradebook")) {
-    return ["students", "gradebook", ...mods];
+
+  const raw = Array.isArray(docData) ? docData : docData.enabled_modules;
+  const configVer = typeof docData.config_version === "number" ? docData.config_version : 1;
+  const isV2 = configVer >= 2 || Boolean(docData.modules_v2);
+
+  if (!raw || !Array.isArray(raw)) {
+    return ["students", "gradebook", "fees", "exams", "attendance", "whatsapp", "reports"];
   }
-  return mods;
+
+  // Once explicitly saved under v2, the user-chosen array is 100% authoritative (even if empty)
+  if (isV2) {
+    return raw;
+  }
+
+  // Untouched legacy record (config_version < 2 and modules_v2 false):
+  // If neither students nor gradebook is in raw, default them to enabled
+  if (!raw.includes("students") && !raw.includes("gradebook")) {
+    return ["students", "gradebook", ...raw];
+  }
+
+  return raw;
+};
+
+export const normalizeModules = (data?: any): string[] => {
+  return resolveSchoolModules(data && typeof data === "object" && !Array.isArray(data) ? data : { enabled_modules: data });
 };
 
 /**
@@ -39,7 +60,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
 
     // 1. Ingest all modern unified schools
     for (const school of modernSchools) {
-      const s = { ...school, enabled_modules: normalizeModules(school.enabled_modules) };
+      const s = { ...school, enabled_modules: resolveSchoolModules(school) };
       if (s.telemetry?.bound_machine_uuid && s.token?.status !== "burned") {
         s.token = {
           ...s.token,
@@ -69,6 +90,16 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
         if (lic.isp) existing.telemetry.isp = lic.isp;
         if (lic.last_active_at) existing.telemetry.last_active_at = lic.last_active_at;
 
+        // Synchronize newer status/modules from licenses collection if it has updates
+        if (lic.config_version && lic.config_version >= (existing.config_version || 1)) {
+          if (lic.status) existing.status = lic.status;
+          if (lic.enabled_modules !== undefined) existing.enabled_modules = resolveSchoolModules(lic);
+          if (lic.schedule_type_policy) existing.schedule_type_policy = lic.schedule_type_policy;
+          if (lic.broadcast_announcement !== undefined) existing.broadcast_announcement = lic.broadcast_announcement;
+          existing.config_version = lic.config_version;
+          if (lic.modules_v2 !== undefined) existing.modules_v2 = lic.modules_v2;
+        }
+
         if (existing.telemetry?.bound_machine_uuid && existing.token?.status !== "burned") {
           existing.token = {
             ...existing.token,
@@ -90,9 +121,10 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
           plan: (lic.plan as PlanType) || "standard",
           expires_at: lic.expires_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           status: (lic.status as LicenseStatus) || "active",
-          enabled_modules: normalizeModules(lic.enabled_modules),
+          enabled_modules: resolveSchoolModules(lic),
           schedule_type_policy: lic.schedule_type_policy || "configurable",
           config_version: lic.config_version || 1,
+          modules_v2: lic.modules_v2 || false,
           broadcast_announcement: lic.broadcast_announcement || "",
           is_legacy: true,
           token: matchedToken
@@ -291,7 +323,8 @@ export async function createUnifiedSchool(params: CreateSchoolParams): Promise<S
     status: "active",
     enabled_modules: params.enabled_modules,
     schedule_type_policy: params.schedule_type_policy || "configurable",
-    config_version: 1,
+    config_version: 2,
+    modules_v2: true,
     token: {
       token_string: tokenStr,
       status: "unused",
@@ -341,6 +374,8 @@ export async function createUnifiedSchool(params: CreateSchoolParams): Promise<S
     rsa_signature: signature,
     enabled_modules: newSchool.enabled_modules,
     schedule_type_policy: newSchool.schedule_type_policy,
+    config_version: 2,
+    modules_v2: true,
     bound_machine_uuid: null,
     created_at: nowIso,
     updated_at: nowIso
@@ -386,15 +421,15 @@ export async function updateSchoolAndLicense(
   updates: Partial<SchoolClient>
 ): Promise<void> {
   const privateKey = getSessionPrivateKey();
-  const newName = updates.school_name || school.school_name;
-  const newStatus = updates.status || school.status;
-  const newExpiresAt = updates.expires_at || school.expires_at;
-  const newPlan = updates.plan || school.plan;
-  const newModules = updates.enabled_modules || school.enabled_modules;
+  const newName = updates.school_name !== undefined ? updates.school_name : school.school_name;
+  const newStatus = updates.status !== undefined ? updates.status : school.status;
+  const newExpiresAt = updates.expires_at !== undefined ? updates.expires_at : school.expires_at;
+  const newPlan = updates.plan !== undefined ? updates.plan : school.plan;
+  const newModules = updates.enabled_modules !== undefined ? updates.enabled_modules : school.enabled_modules;
   const newSchedulePolicy = updates.schedule_type_policy !== undefined ? updates.schedule_type_policy : (school.schedule_type_policy || "configurable");
   const newBroadcast = updates.broadcast_announcement !== undefined ? updates.broadcast_announcement : (school.broadcast_announcement || "");
   const newBoundUuid = updates.telemetry?.bound_machine_uuid !== undefined ? updates.telemetry.bound_machine_uuid : (school.telemetry?.bound_machine_uuid || null);
-  const newVersion = (school.config_version || 1) + 1;
+  const newVersion = Math.max((school.config_version || 1) + 1, 2);
   const nowIso = new Date().toISOString();
 
   let signature = school.license?.rsa_signature || "";
@@ -413,6 +448,7 @@ export async function updateSchoolAndLicense(
     status: newStatus,
     expires_at: newExpiresAt,
     enabled_modules: newModules,
+    modules_v2: true,
     schedule_type_policy: newSchedulePolicy,
     broadcast_announcement: newBroadcast,
     config_version: newVersion,
@@ -452,6 +488,7 @@ export async function updateSchoolAndLicense(
       expires_at: newExpiresAt,
       rsa_signature: signature,
       enabled_modules: newModules,
+      modules_v2: true,
       schedule_type_policy: newSchedulePolicy,
       broadcast_announcement: newBroadcast,
       config_version: newVersion,

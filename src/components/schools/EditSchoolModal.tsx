@@ -11,7 +11,7 @@ import {
   Unlock
 } from "lucide-react";
 import type { SchoolClient, PlanType, LicenseStatus, ScheduleTypePolicy } from "../../types";
-import { updateSchoolAndLicense } from "../../services/schoolService";
+import { updateSchoolAndLicense, normalizeModules } from "../../services/schoolService";
 import { getSessionPrivateKey } from "../../services/cryptoService";
 
 interface Props {
@@ -23,6 +23,8 @@ interface Props {
 }
 
 const AVAILABLE_MODULES = [
+  { id: "students", label: "Student Management", desc: "Enrollments, Profiles & ID Cards" },
+  { id: "gradebook", label: "Gradebook", desc: "Marks Records & Teacher Gradebooks" },
   { id: "fees", label: "Fee Management", desc: "Vouchers, Challans & Defaulters" },
   { id: "exams", label: "Exams & Datesheets", desc: "Marks Entry & Report Cards" },
   { id: "attendance", label: "Attendance & Biometrics", desc: "Student & Staff Attendance" },
@@ -52,7 +54,7 @@ export const EditSchoolModal: React.FC<Props> = ({
       return new Date().toISOString().split("T")[0];
     }
   });
-  const [modules, setModules] = useState<string[]>(school.enabled_modules || []);
+  const [modules, setModules] = useState<string[]>(normalizeModules(school.enabled_modules));
   const [boundUuid, setBoundUuid] = useState<string | null>(
     school.telemetry?.bound_machine_uuid || null
   );

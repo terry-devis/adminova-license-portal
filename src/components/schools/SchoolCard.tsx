@@ -354,7 +354,7 @@ export const SchoolCard: React.FC<Props> = ({
           <span style={{ fontSize: "0.64rem", fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", marginRight: "0.25rem" }}>
             Modules:
           </span>
-          {["fees", "exams", "attendance", "whatsapp", "reports"].map((m) => {
+          {["students", "gradebook", "fees", "exams", "attendance", "whatsapp", "reports"].map((m) => {
             const has = (school.enabled_modules || []).includes(m);
             return (
               <span

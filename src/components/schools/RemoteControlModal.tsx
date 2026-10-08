@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Sliders, ShieldAlert, X, CheckSquare, Square, Save } from "lucide-react";
 import type { SchoolClient, LicenseStatus, ScheduleTypePolicy } from "../../types";
-import { updateRemotePolicy } from "../../services/schoolService";
+import { updateRemotePolicy, normalizeModules } from "../../services/schoolService";
 
 interface Props {
   school: SchoolClient | null;
@@ -12,6 +12,8 @@ interface Props {
 }
 
 const AVAILABLE_MODULES = [
+  { id: "students", label: "Student Management", desc: "Hides student admissions, profiles, rosters & ID cards" },
+  { id: "gradebook", label: "Gradebook", desc: "Hides admin and teacher gradebook assessments" },
   { id: "fees", label: "Fee Management", desc: "Completely hides invoices, receipts, vouchers & student ledger" },
   { id: "exams", label: "Exams & Datesheets", desc: "Completely hides exam setups, mark entries & report cards" },
   { id: "attendance", label: "Attendance & Biometrics", desc: "Hides student & staff daily attendance logs" },
@@ -30,7 +32,7 @@ export const RemoteControlModal: React.FC<Props> = ({
 
   const [status, setStatus] = useState<LicenseStatus>(school.status);
   const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>(school.schedule_type_policy || "configurable");
-  const [modules, setModules] = useState<string[]>(school.enabled_modules || []);
+  const [modules, setModules] = useState<string[]>(normalizeModules(school.enabled_modules));
   const [broadcast, setBroadcast] = useState(school.broadcast_announcement || "");
   const [saving, setSaving] = useState(false);
 

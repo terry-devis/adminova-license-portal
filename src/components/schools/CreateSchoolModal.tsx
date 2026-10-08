@@ -13,6 +13,8 @@ interface Props {
 }
 
 const ALL_MODULES = [
+  { id: "students", label: "Student Management", desc: "Enrollments, Profiles & ID Cards" },
+  { id: "gradebook", label: "Gradebook", desc: "Marks Records & Teacher Gradebooks" },
   { id: "fees", label: "Fee Management", desc: "Invoices, Receipts & Defaulters" },
   { id: "exams", label: "Exams & Datesheets", desc: "Marks Entry & Report Cards" },
   { id: "attendance", label: "Attendance & Biometrics", desc: "Student & Staff Attendance" },
@@ -34,6 +36,8 @@ export const CreateSchoolModal: React.FC<Props> = ({
   const [daysValid, setDaysValid] = useState(365);
   const [schedulePolicy, setSchedulePolicy] = useState<ScheduleTypePolicy>("configurable");
   const [selectedModules, setSelectedModules] = useState<string[]>([
+    "students",
+    "gradebook",
     "fees",
     "exams",
     "attendance",

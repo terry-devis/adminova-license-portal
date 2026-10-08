@@ -14,7 +14,7 @@ export interface SchoolClient {
   plan: PlanType;
   expires_at: string; // ISO string
   status: LicenseStatus;
-  enabled_modules: string[]; // e.g. ['fees', 'exams', 'attendance', 'whatsapp', 'reports']
+  enabled_modules: string[]; // e.g. ['students', 'gradebook', 'fees', 'exams', 'attendance', 'whatsapp', 'reports']
   schedule_type_policy?: ScheduleTypePolicy; // 'configurable' | 'day_wise' | 'single_schedule'
   broadcast_announcement?: string;
   config_version: number; // Increments to trigger instant real-time sync on client

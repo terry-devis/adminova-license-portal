@@ -13,6 +13,16 @@ const COLLECTION_SCHOOLS = "schools";
 const COLLECTION_TOKENS = "install_tokens";
 const COLLECTION_LICENSES = "licenses";
 
+export const normalizeModules = (mods?: string[]): string[] => {
+  if (!mods || !Array.isArray(mods) || mods.length === 0) {
+    return ["students", "gradebook", "fees", "exams", "attendance", "whatsapp", "reports"];
+  }
+  if (!mods.includes("students") && !mods.includes("gradebook")) {
+    return ["students", "gradebook", ...mods];
+  }
+  return mods;
+};
+
 /**
  * Universal real-time subscription that queries:
  * 1. Unified 'schools' collection (v3)
@@ -29,7 +39,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
 
     // 1. Ingest all modern unified schools
     for (const school of modernSchools) {
-      const s = { ...school };
+      const s = { ...school, enabled_modules: normalizeModules(school.enabled_modules) };
       if (s.telemetry?.bound_machine_uuid && s.token?.status !== "burned") {
         s.token = {
           ...s.token,
@@ -80,7 +90,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
           plan: (lic.plan as PlanType) || "standard",
           expires_at: lic.expires_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           status: (lic.status as LicenseStatus) || "active",
-          enabled_modules: lic.enabled_modules || ["fees", "exams", "attendance", "whatsapp", "reports"],
+          enabled_modules: normalizeModules(lic.enabled_modules),
           schedule_type_policy: lic.schedule_type_policy || "configurable",
           config_version: lic.config_version || 1,
           broadcast_announcement: lic.broadcast_announcement || "",
@@ -153,7 +163,7 @@ export function subscribeToSchools(callback: (schools: SchoolClient[]) => void, 
           plan: (tok.plan as PlanType) || "standard",
           expires_at: tok.expires_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
           status: "active",
-          enabled_modules: ["fees", "exams", "attendance", "whatsapp", "reports"],
+          enabled_modules: normalizeModules(tok.enabled_modules),
           schedule_type_policy: "configurable",
           config_version: 1,
           is_legacy_token: true,

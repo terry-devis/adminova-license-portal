@@ -19,8 +19,7 @@ export const resolveSchoolModules = (docData?: any): string[] => {
   }
 
   const raw = Array.isArray(docData) ? docData : docData.enabled_modules;
-  const configVer = typeof docData.config_version === "number" ? docData.config_version : 1;
-  const isV2 = configVer >= 2 || Boolean(docData.modules_v2);
+  const isV2 = Boolean(docData.modules_v2);
 
   if (!raw || !Array.isArray(raw)) {
     return ["students", "gradebook", "fees", "exams", "attendance", "whatsapp", "reports"];
@@ -31,13 +30,16 @@ export const resolveSchoolModules = (docData?: any): string[] => {
     return raw;
   }
 
-  // Untouched legacy record (config_version < 2 and modules_v2 false):
-  // If neither students nor gradebook is in raw, default them to enabled
-  if (!raw.includes("students") && !raw.includes("gradebook")) {
-    return ["students", "gradebook", ...raw];
+  // Legacy record (not yet saved under modules_v2):
+  // students and gradebook were core features, so default them to enabled
+  const result = [...raw];
+  if (!result.includes("students")) {
+    result.unshift("students");
   }
-
-  return raw;
+  if (!result.includes("gradebook")) {
+    result.splice(1, 0, "gradebook");
+  }
+  return result;
 };
 
 export const normalizeModules = (data?: any): string[] => {
